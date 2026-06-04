@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -37,7 +38,11 @@ export default function JobsPage() {
               key={job.id}
               className="rounded-lg border p-4 shadow"
             >
-              <h2 className="text-xl font-bold">{job.title}</h2>
+              <Link href={`/jobs/${job.id}`}>
+  <h2 className="text-xl font-bold text-blue-600">
+    {job.title}
+  </h2>
+</Link>
 
               <p>
                 <strong>Company:</strong> {job.company_name}
