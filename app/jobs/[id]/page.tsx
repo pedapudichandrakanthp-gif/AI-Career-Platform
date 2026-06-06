@@ -1,20 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import type { JobRow } from "@/types/database";
 
-export default function JobDetailsPage({
-  params,
-}: {
-  params: { id: string };
-}) {
-  const [job, setJob] = useState<any>(null);
+export default function JobDetailsPage() {
+  const params = useParams<{ id: string }>();
+  const [job, setJob] = useState<JobRow | null>(null);
 
-  useEffect(() => {
-    fetchJob();
-  }, []);
-
-  const fetchJob = async () => {
+  const fetchJob = useCallback(async () => {
     const { data, error } = await supabase
       .from("jobs")
       .select("*")
@@ -26,8 +21,12 @@ export default function JobDetailsPage({
       return;
     }
 
-    setJob(data);
-  };
+    setJob(data as JobRow);
+  }, [params.id]);
+
+  useEffect(() => {
+    fetchJob();
+  }, [fetchJob]);
 
   if (!job) {
     return <p className="p-10">Loading...</p>;
@@ -36,30 +35,30 @@ export default function JobDetailsPage({
   return (
     <main className="p-10">
       <h1 className="text-3xl font-bold">
-        {job.title}
+        {job.title ?? "Untitled Job"}
       </h1>
 
       <p className="mt-4">
-        <strong>Company:</strong> {job.company_name}
+        <strong>Company:</strong> {job.company_name ?? "Not specified"}
       </p>
 
       <p>
-        <strong>Location:</strong> {job.location}
+        <strong>Location:</strong> {job.location ?? "Not specified"}
       </p>
 
       <p>
-        <strong>Category:</strong> {job.category}
+        <strong>Category:</strong> {job.category ?? "Not specified"}
       </p>
 
       <p>
-        <strong>Qualification:</strong> {job.qualification}
+        <strong>Qualification:</strong> {job.qualification ?? "Not specified"}
       </p>
 
       <p>
         <strong>Description:</strong>
       </p>
 
-      <p>{job.description}</p>
+      <p>{job.description ?? "No description available."}</p>
 
       {job.apply_link && (
         <a
