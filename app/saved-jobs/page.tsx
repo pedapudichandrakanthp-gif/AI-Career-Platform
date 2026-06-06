@@ -1,24 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { normalizeSavedJob, type SavedJobQueryRow } from "@/lib/jobs/savedJobs";
 import { supabase } from "@/lib/supabase";
-import type { JobRow, SavedJobWithJob } from "@/types/database";
-
-type SavedJobQueryJob = Pick<JobRow, "id" | "title" | "company_name" | "location" | "category">;
-
-interface SavedJobQueryRow {
-  readonly id: string;
-  readonly saved_at: string | null;
-  readonly jobs: SavedJobQueryJob | SavedJobQueryJob[] | null;
-}
-
-function normalizeSavedJob(row: SavedJobQueryRow): SavedJobWithJob {
-  return {
-    id: row.id,
-    saved_at: row.saved_at,
-    jobs: Array.isArray(row.jobs) ? (row.jobs[0] ?? null) : row.jobs
-  };
-}
+import type { SavedJobWithJob } from "@/types/database";
 
 export default function SavedJobsPage() {
   const [savedJobs, setSavedJobs] = useState<SavedJobWithJob[]>([]);
@@ -78,6 +64,7 @@ export default function SavedJobsPage() {
   };
 
   return (
+    <ProtectedRoute>
     <main className="p-10">
       <h1 className="mb-6 text-3xl font-bold">
         Saved Jobs
@@ -109,5 +96,6 @@ export default function SavedJobsPage() {
         ))}
       </div>
     </main>
+    </ProtectedRoute>
   );
 }
