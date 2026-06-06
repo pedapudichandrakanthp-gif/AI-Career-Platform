@@ -1,5 +1,11 @@
 "use client";
 
+<Link
+  href="/recommendations"
+  className="bg-blue-600 px-4 py-2 rounded"
+>
+  View Recommendations
+</Link>
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
