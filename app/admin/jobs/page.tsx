@@ -60,8 +60,8 @@ function jobToForm(job: JobRow): JobFormData {
   };
 }
 
-function formToPayload(form: JobFormData) {
-  return {
+function formToPayload(form: JobFormData, isCreate: boolean) {
+  const payload: Record<string, unknown> = {
     title: form.title || null,
     company_name: form.company_name || null,
     job_type: form.job_type || null,
@@ -83,6 +83,12 @@ function formToPayload(form: JobFormData) {
     is_active: form.is_active,
     updated_at: new Date().toISOString(),
   };
+
+  if (isCreate) {
+    payload.source = "Manual Admin";
+  }
+
+  return payload;
 }
 
 export default function AdminJobsPage() {
@@ -147,7 +153,7 @@ export default function AdminJobsPage() {
     setErrorMessage("");
     setSuccessMessage("");
 
-    const payload = formToPayload(form);
+    const payload = formToPayload(form, !editingJob);
 
     if (editingJob) {
       const { error } = await supabase.from("jobs").update(payload).eq("id", editingJob.id);
@@ -224,10 +230,15 @@ export default function AdminJobsPage() {
               Create, edit, and manage job listings.
             </p>
           </div>
-          <button type="button" onClick={openCreateModal} className="btn-primary gap-2">
-            <Plus size={18} aria-hidden="true" />
-            Create Job
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <a href="/admin/import-jobs" className="btn-secondary">
+              Import with AI
+            </a>
+            <button type="button" onClick={openCreateModal} className="btn-primary gap-2">
+              <Plus size={18} aria-hidden="true" />
+              Create Job
+            </button>
+          </div>
         </div>
 
         {errorMessage ? <div className="alert-error mt-6">{errorMessage}</div> : null}

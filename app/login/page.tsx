@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { userHasResume } from "@/lib/onboarding/check";
 import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
@@ -24,6 +25,15 @@ export default function LoginPage() {
     if (error) {
       alert("Invalid credentials");
       setLoading(false);
+      return;
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user && !(await userHasResume(supabase, user.id))) {
+      router.push("/onboarding");
       return;
     }
 

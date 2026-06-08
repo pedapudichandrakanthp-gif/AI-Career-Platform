@@ -4,15 +4,21 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Sparkles } from "lucide-react";
 
+import JobAnalysisCard from "@/components/dashboard/JobAnalysisCard";
+import { getAccessToken } from "@/lib/resumes/upload";
 import { supabase } from "@/lib/supabase";
+import type { JobAnalysis } from "@/types/ai";
 import type { JobRow } from "@/types/database";
 
 export default function JobDetailsPage() {
   const params = useParams<{ id: string }>();
   const [job, setJob] = useState<JobRow | null>(null);
   const [loading, setLoading] = useState(true);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [jobAnalysis, setJobAnalysis] = useState<JobAnalysis | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const fetchJob = useCallback(async () => {
     setLoading(true);
@@ -64,6 +70,54 @@ export default function JobDetailsPage() {
     alert("Job Saved");
   };
 
+  const handleAnalyzeJob = async () => {
+    if (!job) return;
+
+    setAnalyzing(true);
+    setErrorMessage("");
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setErrorMessage("Please login to analyze jobs.");
+        setAnalyzing(false);
+        return;
+      }
+
+      const accessToken = await getAccessToken(supabase);
+
+      const response = await fetch("/api/ai/analyze-job", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          title: job.title,
+          description: job.description,
+          skills: job.skills,
+          qualification: job.qualification,
+          experience_required: job.experience_required,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = (await response.json()) as { error?: string };
+        throw new Error(data.error ?? "Failed to analyze job.");
+      }
+
+      const data = (await response.json()) as { analysis: JobAnalysis };
+      setJobAnalysis(data.analysis);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Failed to analyze job.");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
   if (loading) {
     return (
       <main className="page-main">
@@ -94,8 +148,16 @@ export default function JobDetailsPage() {
           Back to Jobs
         </Link>
 
+        {errorMessage ? <div className="alert-error mb-6">{errorMessage}</div> : null}
+
         <article className="card">
           <h1 className="page-title">{job.title ?? "Untitled Job"}</h1>
+
+          {job.source ? (
+            <span className="mt-3 inline-flex rounded-full bg-slate-200 px-3 py-1 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+              Source: {job.source}
+            </span>
+          ) : null}
 
           <dl className="mt-6 grid gap-4 sm:grid-cols-2">
             <div>
@@ -193,8 +255,21 @@ export default function JobDetailsPage() {
             <button type="button" onClick={saveJob} className="btn-success">
               Save Job
             </button>
+            <button
+              type="button"
+              onClick={handleAnalyzeJob}
+              disabled={analyzing}
+              className="btn-secondary gap-2"
+            >
+              <Sparkles size={18} aria-hidden="true" />
+              {analyzing ? "Analyzing..." : "Analyze Job"}
+            </button>
           </div>
         </article>
+
+        {jobAnalysis ? (
+          <JobAnalysisCard analysis={jobAnalysis} onClose={() => setJobAnalysis(null)} />
+        ) : null}
       </section>
     </main>
   );

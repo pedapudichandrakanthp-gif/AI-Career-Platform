@@ -1,20 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import NextSteps from "@/components/dashboard/NextSteps";
+import ProfileCompletionCard from "@/components/dashboard/ProfileCompletionCard";
+import ResumeAnalysisCard from "@/components/dashboard/ResumeAnalysisCard";
+import ExtractedProfilePreview from "@/components/profile/ExtractedProfilePreview";
 import { normalizeSavedJob, type SavedJobQueryRow } from "@/lib/jobs/savedJobs";
-import { generateAndStoreMatchScoresForUser } from "@/lib/matching/matchScores";
+import { userHasResume } from "@/lib/onboarding/check";
+import { calculateProfileCompletion } from "@/lib/profile/completion";
+import { urlToBase64 } from "@/lib/resumes/fileUtils";
+import {
+  getAccessToken,
+  refreshUserDataAfterResumeUpdate,
+  uploadAndProcessResume,
+} from "@/lib/resumes/upload";
 import { supabase } from "@/lib/supabase";
+import type { ExtractedProfile, ResumeAnalysis } from "@/types/ai";
 import type { ResumeRow, SavedJobWithJob, UserProfileRow } from "@/types/database";
 
 interface DashboardMetrics {
   readonly totalSavedJobs: number;
   readonly hasUploadedResume: boolean;
   readonly latestResumeName: string | null;
-  readonly profileCompletionPercentage: number;
+  readonly latestResume: ResumeRow | null;
   readonly matchScoreCount: number;
 }
 
@@ -22,38 +34,33 @@ const emptyMetrics: DashboardMetrics = {
   totalSavedJobs: 0,
   hasUploadedResume: false,
   latestResumeName: null,
-  profileCompletionPercentage: 0,
+  latestResume: null,
   matchScoreCount: 0,
 };
 
-function calculateProfileCompletion(profile: UserProfileRow | null): number {
-  if (!profile) {
-    return 0;
-  }
-
-  const completedFields = [
-    profile.full_name,
-    profile.phone,
-    profile.location,
-    profile.education,
-    profile.degree,
-    profile.skills && profile.skills.length > 0 ? profile.skills : null,
-    typeof profile.experience_years === "number" ? profile.experience_years : null,
-    profile.preferred_job_type,
-    typeof profile.expected_salary === "number" ? profile.expected_salary : null,
-  ].filter((value) => value !== null && value !== "");
-
-  return Math.round((completedFields.length / 9) * 100);
-}
-
 export default function DashboardPage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [email, setEmail] = useState("");
+  const [profile, setProfile] = useState<UserProfileRow | null>(null);
   const [metrics, setMetrics] = useState<DashboardMetrics>(emptyMetrics);
   const [recentSavedJobs, setRecentSavedJobs] = useState<SavedJobWithJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingMatches, setIsGeneratingMatches] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
+  const [analyzing, setAnalyzing] = useState(false);
+  const [resumeAnalysis, setResumeAnalysis] = useState<ResumeAnalysis | null>(null);
+  const [hasAnalyzedResume, setHasAnalyzedResume] = useState(false);
+
+  const [showProfilePreview, setShowProfilePreview] = useState(false);
+  const [extractedProfile, setExtractedProfile] = useState<ExtractedProfile | null>(null);
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  const completion = calculateProfileCompletion(profile, metrics.latestResume);
 
   const loadDashboard = useCallback(async () => {
     setIsLoading(true);
@@ -76,6 +83,13 @@ export default function DashboardPage() {
       return;
     }
 
+    const hasResume = await userHasResume(supabase, user.id);
+
+    if (!hasResume) {
+      router.replace("/onboarding");
+      return;
+    }
+
     setEmail(user.email ?? "");
 
     const [profileResult, savedJobsCountResult, latestResumeResult, recentSavedJobsResult, matchCountResult] =
@@ -87,9 +101,7 @@ export default function DashboardPage() {
           .eq("user_id", user.id),
         supabase
           .from("resumes")
-          .select(
-            "id,file_name,file_url,uploaded_at,user_id,extracted_text,extracted_skills,extracted_education,extracted_experience",
-          )
+          .select("*")
           .eq("user_id", user.id)
           .order("uploaded_at", { ascending: false })
           .limit(1)
@@ -131,17 +143,18 @@ export default function DashboardPage() {
       return;
     }
 
-    const profile = profileResult.data as UserProfileRow | null;
+    const profileData = profileResult.data as UserProfileRow | null;
     const latestResume = latestResumeResult.data as ResumeRow | null;
     const normalizedRecentSavedJobs = (
       (recentSavedJobsResult.data ?? []) as unknown as SavedJobQueryRow[]
     ).map(normalizeSavedJob);
 
+    setProfile(profileData);
     setMetrics({
       totalSavedJobs: savedJobsCountResult.count ?? 0,
       hasUploadedResume: Boolean(latestResume),
       latestResumeName: latestResume?.file_name ?? null,
-      profileCompletionPercentage: calculateProfileCompletion(profile),
+      latestResume: latestResume,
       matchScoreCount: matchCountResult.count ?? 0,
     });
     setRecentSavedJobs(normalizedRecentSavedJobs);
@@ -156,45 +169,174 @@ export default function DashboardPage() {
     setIsGeneratingMatches(true);
     setErrorMessage("");
 
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
-
-    if (error) {
-      setErrorMessage(error.message);
-      setIsGeneratingMatches(false);
-      return;
-    }
-
-    if (!user) {
-      router.replace("/login");
-      return;
-    }
-
     try {
-      await generateAndStoreMatchScoresForUser(supabase, user.id);
+      const accessToken = await getAccessToken(supabase);
+      const response = await fetch("/api/match-scores/generate", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (!response.ok) {
+        const data = (await response.json()) as { error?: string };
+        throw new Error(data.error ?? "Failed to generate match scores.");
+      }
+
       await loadDashboard();
-    } catch (generateError) {
-      setErrorMessage(
-        generateError instanceof Error ? generateError.message : "Unable to generate match scores.",
-      );
+      setSuccessMessage("Match scores generated successfully.");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Unable to generate match scores.");
     } finally {
       setIsGeneratingMatches(false);
     }
   };
 
-  const resumeStatus = useMemo(() => {
-    if (!metrics.hasUploadedResume) {
-      return "No resume uploaded";
+  const handleUpdateResume = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    setUploading(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+    setUploadProgress("Uploading resume...");
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
+
+      const accessToken = await getAccessToken(supabase);
+
+      setUploadProgress("Processing with AI...");
+
+      const result = await uploadAndProcessResume(supabase, {
+        file,
+        userId: user.id,
+        accessToken,
+        replaceExisting: true,
+      });
+
+      setUploadProgress("Refreshing match scores...");
+      await refreshUserDataAfterResumeUpdate(accessToken);
+      await loadDashboard();
+
+      setSuccessMessage("Resume updated successfully.");
+
+      if (result.extractedProfile && result.isFirstUpload) {
+        setExtractedProfile(result.extractedProfile);
+        setShowProfilePreview(true);
+      }
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Failed to update resume.");
+    } finally {
+      setUploading(false);
+      setUploadProgress("");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleAnalyzeResume = async () => {
+    if (!metrics.latestResume) {
+      setErrorMessage("No resume found to analyze.");
+      return;
     }
 
-    return metrics.latestResumeName ? `Uploaded: ${metrics.latestResumeName}` : "Resume uploaded";
-  }, [metrics.hasUploadedResume, metrics.latestResumeName]);
+    setAnalyzing(true);
+    setErrorMessage("");
+
+    try {
+      const accessToken = await getAccessToken(supabase);
+      let body: Record<string, string>;
+
+      if (metrics.latestResume.extracted_text) {
+        body = { resumeText: metrics.latestResume.extracted_text };
+      } else if (metrics.latestResume.file_url) {
+        const { base64, mimeType } = await urlToBase64(metrics.latestResume.file_url);
+        body = { pdfBase64: base64, mimeType };
+      } else {
+        throw new Error("Resume file not available for analysis.");
+      }
+
+      const response = await fetch("/api/ai/analyze-resume", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const data = (await response.json()) as { error?: string };
+        throw new Error(data.error ?? "Failed to analyze resume.");
+      }
+
+      const data = (await response.json()) as { analysis: ResumeAnalysis };
+      setResumeAnalysis(data.analysis);
+      setHasAnalyzedResume(true);
+      setSuccessMessage("Resume analysis complete.");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Failed to analyze resume.");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const handleSaveExtractedProfile = async (profileData: ExtractedProfile) => {
+    setSavingProfile(true);
+    setErrorMessage("");
+
+    try {
+      const accessToken = await getAccessToken(supabase);
+
+      const response = await fetch("/api/profile/save-extracted", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ profile: profileData, overwriteEmptyOnly: true }),
+      });
+
+      if (!response.ok) {
+        const data = (await response.json()) as { error?: string };
+        throw new Error(data.error ?? "Failed to save profile.");
+      }
+
+      setShowProfilePreview(false);
+      setExtractedProfile(null);
+      setSuccessMessage("Profile updated from resume.");
+      await loadDashboard();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Failed to save profile.");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   return (
     <ProtectedRoute>
       <main className="page-main">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf"
+          className="hidden"
+          onChange={handleFileSelected}
+          aria-hidden="true"
+        />
+
         <section className="page-container max-w-6xl">
           <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -209,8 +351,9 @@ export default function DashboardPage() {
           </div>
 
           {errorMessage ? <div className="alert-error mt-6">{errorMessage}</div> : null}
+          {successMessage ? <div className="alert-success mt-6">{successMessage}</div> : null}
 
-          <dl className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="card">
               <dt className="text-sm text-slate-500 dark:text-slate-400">Total Saved Jobs</dt>
               <dd className="mt-3 text-3xl font-semibold">{metrics.totalSavedJobs}</dd>
@@ -218,19 +361,71 @@ export default function DashboardPage() {
 
             <div className="card">
               <dt className="text-sm text-slate-500 dark:text-slate-400">Uploaded Resume Status</dt>
-              <dd className="mt-3 break-words text-base font-semibold">{resumeStatus}</dd>
+              <dd className="mt-3 break-words text-base font-semibold">
+                {metrics.latestResumeName ?? "No resume uploaded"}
+              </dd>
+              {metrics.hasUploadedResume ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={handleUpdateResume}
+                    disabled={uploading}
+                    className="btn-secondary text-sm"
+                  >
+                    {uploading ? "Uploading..." : "Update Resume"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAnalyzeResume}
+                    disabled={analyzing}
+                    className="btn-primary text-sm"
+                  >
+                    {analyzing ? "Analyzing..." : "Analyze Resume"}
+                  </button>
+                </div>
+              ) : null}
+              {uploadProgress ? (
+                <p className="mt-2 text-xs text-blue-600 dark:text-blue-400">{uploadProgress}</p>
+              ) : null}
             </div>
 
-            <div className="card">
-              <dt className="text-sm text-slate-500 dark:text-slate-400">Profile Completion</dt>
-              <dd className="mt-3 text-3xl font-semibold">{metrics.profileCompletionPercentage}%</dd>
-            </div>
+            <ProfileCompletionCard completion={completion} />
 
             <div className="card">
               <dt className="text-sm text-slate-500 dark:text-slate-400">Match Score Count</dt>
               <dd className="mt-3 text-3xl font-semibold">{metrics.matchScoreCount}</dd>
             </div>
-          </dl>
+          </div>
+
+          <NextSteps
+            hasResume={metrics.hasUploadedResume}
+            hasMatchScores={metrics.matchScoreCount > 0}
+            completion={completion}
+            onAnalyzeResume={handleAnalyzeResume}
+            analyzing={analyzing}
+            hasAnalyzedResume={hasAnalyzedResume}
+          />
+
+          {resumeAnalysis ? (
+            <ResumeAnalysisCard
+              analysis={resumeAnalysis}
+              onClose={() => setResumeAnalysis(null)}
+            />
+          ) : null}
+
+          {showProfilePreview && extractedProfile ? (
+            <div className="mt-6">
+              <ExtractedProfilePreview
+                initialProfile={extractedProfile}
+                onSave={handleSaveExtractedProfile}
+                onCancel={() => {
+                  setShowProfilePreview(false);
+                  setExtractedProfile(null);
+                }}
+                saving={savingProfile}
+              />
+            </div>
+          ) : null}
 
           <section className="card mt-6 overflow-hidden p-0">
             <div className="border-b border-slate-200 p-5 dark:border-slate-800">

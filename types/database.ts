@@ -30,6 +30,7 @@ export interface JobRow {
   readonly apply_link: string | null;
   readonly application_deadline: string | null;
   readonly is_active: boolean | null;
+  readonly source: string | null;
   readonly created_at: string | null;
   readonly updated_at: string | null;
 }
