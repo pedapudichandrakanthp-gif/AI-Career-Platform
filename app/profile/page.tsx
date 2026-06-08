@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { supabase } from "@/lib/supabase";
 
@@ -8,7 +9,6 @@ function formatSkillsForInput(value: string | string[] | null): string {
   if (Array.isArray(value)) {
     return value.join(", ");
   }
-
   return value ?? "";
 }
 
@@ -21,6 +21,7 @@ function parseSkillsForDatabase(value: string): string[] {
 
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -28,168 +29,248 @@ export default function ProfilePage() {
   const [education, setEducation] = useState("");
   const [degree, setDegree] = useState("");
   const [skills, setSkills] = useState("");
-  const [experienceYears, setExperienceYears] = useState(0);
+  const [experienceYears, setExperienceYears] = useState<number | "">("");
   const [preferredJobType, setPreferredJobType] = useState("");
-  const [expectedSalary, setExpectedSalary] = useState(0);
+  const [expectedSalary, setExpectedSalary] = useState<number | "">("");
 
   useEffect(() => {
     fetchProfile();
   }, []);
 
   const fetchProfile = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    try {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
 
-    if (!user) {
+      if (authError || !user) {
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase.from("users").select("*").eq("id", user.id).single();
+
+      if (error && error.code !== "PGRST116") {
+        console.error("Error fetching profile:", error.message);
+      }
+
+      if (data) {
+        setFullName(data.full_name || "");
+        setPhone(data.phone || "");
+        setLocation(data.location || "");
+        setEducation(data.education || "");
+        setDegree(data.degree || "");
+        setSkills(formatSkillsForInput(data.skills));
+        setExperienceYears(data.experience_years || "");
+        setPreferredJobType(data.preferred_job_type || "");
+        setExpectedSalary(data.expected_salary || "");
+      }
+    } catch (err) {
+      console.error("Unexpected error fetching profile:", err);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const { data } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", user.id)
-      .single();
-
-    if (data) {
-      setFullName(data.full_name || "");
-      setPhone(data.phone || "");
-      setLocation(data.location || "");
-      setEducation(data.education || "");
-      setDegree(data.degree || "");
-      setSkills(formatSkillsForInput(data.skills));
-      setExperienceYears(data.experience_years || 0);
-      setPreferredJobType(data.preferred_job_type || "");
-      setExpectedSalary(data.expected_salary || 0);
-    }
-
-    setLoading(false);
   };
 
   const saveProfile = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    setSaving(true);
 
-    if (!user) {
-      alert("Please login first");
-      return;
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        alert("Please login first");
+        setSaving(false);
+        return;
+      }
+
+      const { error } = await supabase
+        .from("users")
+        .update({
+          full_name: fullName,
+          phone,
+          location,
+          education,
+          degree,
+          skills: parseSkillsForDatabase(skills),
+          experience_years: experienceYears === "" ? 0 : Number(experienceYears),
+          preferred_job_type: preferredJobType,
+          expected_salary: expectedSalary === "" ? 0 : Number(expectedSalary),
+        })
+        .eq("id", user.id);
+
+      if (error) {
+        alert(`Error saving profile: ${error.message}`);
+        setSaving(false);
+        return;
+      }
+
+      alert("Profile Updated Successfully");
+    } catch (err) {
+      console.error("Unexpected error saving profile:", err);
+      alert("An unexpected network error occurred.");
+    } finally {
+      setSaving(false);
     }
-
-    const { error } = await supabase
-      .from("users")
-      .update({
-        full_name: fullName,
-        phone,
-        location,
-        education,
-        degree,
-        skills: parseSkillsForDatabase(skills),
-        experience_years: experienceYears,
-        preferred_job_type: preferredJobType,
-        expected_salary: expectedSalary,
-      })
-      .eq("id", user.id);
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    alert("Profile Updated Successfully");
   };
 
   if (loading) {
-    return <div className="p-10">Loading...</div>;
+    return (
+      <ProtectedRoute>
+        <main className="page-main">
+          <p className="text-slate-600 dark:text-slate-400">Loading...</p>
+        </main>
+      </ProtectedRoute>
+    );
   }
 
   return (
     <ProtectedRoute>
-    <main className="min-h-screen bg-slate-900 text-white p-10">
-      <h1 className="text-4xl font-bold mb-8">My Profile</h1>
+      <main className="page-main">
+        <section className="page-container max-w-2xl">
+          <h1 className="page-title">My Profile</h1>
+          <p className="mt-2 text-base text-slate-600 dark:text-slate-400">
+            Update your career information to improve job matching.
+          </p>
 
-      <div className="max-w-2xl space-y-4 bg-slate-800 p-6 rounded-lg">
+          <div className="card mt-8 space-y-4">
+            <div>
+              <label className="label" htmlFor="fullName">
+                Full Name
+              </label>
+              <input
+                id="fullName"
+                className="input"
+                placeholder="Full Name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+              />
+            </div>
 
-        <input
-          className="w-full p-3 rounded bg-white text-black border"
-          placeholder="Full Name"
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-        />
+            <div>
+              <label className="label" htmlFor="phone">
+                Phone
+              </label>
+              <input
+                id="phone"
+                className="input"
+                placeholder="Phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            </div>
 
-        <input
-          className="w-full p-3 rounded text-black"
-          placeholder="Phone"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-        />
+            <div>
+              <label className="label" htmlFor="location">
+                Location
+              </label>
+              <input
+                id="location"
+                className="input"
+                placeholder="Location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+              />
+            </div>
 
-        <input
-          className="w-full p-3 rounded text-black"
-          placeholder="Location"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-        />
+            <div>
+              <label className="label" htmlFor="education">
+                Education
+              </label>
+              <input
+                id="education"
+                className="input"
+                placeholder="Education"
+                value={education}
+                onChange={(e) => setEducation(e.target.value)}
+              />
+            </div>
 
-        <input
-          className="w-full p-3 rounded text-black"
-          placeholder="Education"
-          value={education}
-          onChange={(e) => setEducation(e.target.value)}
-        />
+            <div>
+              <label className="label" htmlFor="degree">
+                Degree
+              </label>
+              <input
+                id="degree"
+                className="input"
+                placeholder="Degree"
+                value={degree}
+                onChange={(e) => setDegree(e.target.value)}
+              />
+            </div>
 
-        <input
-          className="w-full p-3 rounded text-black"
-          placeholder="Degree"
-          value={degree}
-          onChange={(e) => setDegree(e.target.value)}
-        />
+            <div>
+              <label className="label" htmlFor="skills">
+                Skills
+              </label>
+              <textarea
+                id="skills"
+                className="input min-h-[100px]"
+                placeholder="Skills (React, Java, SQL...)"
+                value={skills}
+                onChange={(e) => setSkills(e.target.value)}
+              />
+            </div>
 
-        <textarea
-          className="w-full p-3 rounded text-black"
-          placeholder="Skills (React, Java, SQL...)"
-          value={skills}
-          onChange={(e) => setSkills(e.target.value)}
-        />
+            <div>
+              <label className="label" htmlFor="experienceYears">
+                Experience Years
+              </label>
+              <input
+                id="experienceYears"
+                type="number"
+                className="input"
+                placeholder="Experience Years"
+                value={experienceYears}
+                onChange={(e) =>
+                  setExperienceYears(e.target.value === "" ? "" : Number(e.target.value))
+                }
+              />
+            </div>
 
-        <input
-          type="number"
-          className="w-full p-3 rounded text-black"
-          placeholder="Experience Years"
-          value={experienceYears}
-          onChange={(e) =>
-            setExperienceYears(Number(e.target.value))
-          }
-        />
+            <div>
+              <label className="label" htmlFor="preferredJobType">
+                Preferred Job Type
+              </label>
+              <input
+                id="preferredJobType"
+                className="input"
+                placeholder="Preferred Job Type"
+                value={preferredJobType}
+                onChange={(e) => setPreferredJobType(e.target.value)}
+              />
+            </div>
 
-        <input
-          className="w-full p-3 rounded text-black"
-          placeholder="Preferred Job Type"
-          value={preferredJobType}
-          onChange={(e) =>
-            setPreferredJobType(e.target.value)
-          }
-        />
+            <div>
+              <label className="label" htmlFor="expectedSalary">
+                Expected Salary
+              </label>
+              <input
+                id="expectedSalary"
+                type="number"
+                className="input"
+                placeholder="Expected Salary"
+                value={expectedSalary}
+                onChange={(e) =>
+                  setExpectedSalary(e.target.value === "" ? "" : Number(e.target.value))
+                }
+              />
+            </div>
 
-        <input
-          type="number"
-          className="w-full p-3 rounded text-black"
-          placeholder="Expected Salary"
-          value={expectedSalary}
-          onChange={(e) =>
-            setExpectedSalary(Number(e.target.value))
-          }
-        />
-
-        <button
-          onClick={saveProfile}
-          className="bg-green-600 px-6 py-3 rounded"
-        >
-          Save Profile
-        </button>
-      </div>
-    </main>
+            <button
+              type="button"
+              onClick={saveProfile}
+              disabled={saving}
+              className="btn-success w-full sm:w-auto"
+            >
+              {saving ? "Saving..." : "Save Profile"}
+            </button>
+          </div>
+        </section>
+      </main>
     </ProtectedRoute>
   );
 }

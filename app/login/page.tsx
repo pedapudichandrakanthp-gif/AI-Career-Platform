@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+
 import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
@@ -9,8 +11,11 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    setLoading(true);
+
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -18,42 +23,64 @@ export default function LoginPage() {
 
     if (error) {
       alert("Invalid credentials");
+      setLoading(false);
       return;
     }
 
     alert("Login Successful");
-
     router.push("/dashboard");
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center">
-      <div className="w-full max-w-md space-y-4 rounded-lg border p-6">
-        <h1 className="text-2xl font-bold">
-          Login
-        </h1>
+    <main className="page-main flex items-center justify-center">
+      <div className="card w-full max-w-md space-y-4">
+        <h1 className="section-title">Login</h1>
+        <p className="text-sm text-slate-600 dark:text-slate-400">
+          Sign in to access your career dashboard.
+        </p>
 
-        <input
-          className="w-full rounded border p-2"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        <div>
+          <label className="label" htmlFor="email">
+            Email
+          </label>
+          <input
+            id="email"
+            className="input"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
 
-        <input
-          type="password"
-          className="w-full rounded border p-2"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <div>
+          <label className="label" htmlFor="password">
+            Password
+          </label>
+          <input
+            id="password"
+            type="password"
+            className="input"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
 
         <button
+          type="button"
           onClick={handleLogin}
-          className="w-full rounded bg-black p-2 text-white"
+          disabled={loading}
+          className="btn-primary w-full"
         >
-          Login
+          {loading ? "Signing in..." : "Login"}
         </button>
+
+        <p className="text-center text-sm text-slate-600 dark:text-slate-400">
+          Don&apos;t have an account?{" "}
+          <Link href="/register" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+            Register
+          </Link>
+        </p>
       </div>
     </main>
   );

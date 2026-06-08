@@ -59,8 +59,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (isCheckingSession || !session) {
     return (
-      <main className="flex min-h-screen items-center justify-center p-6">
-        <p className="text-sm text-slate-600">Checking your session...</p>
+      <main className="page-main flex items-center justify-center">
+        <p className="text-sm text-slate-600 dark:text-slate-400">Checking your session...</p>
       </main>
     );
   }
