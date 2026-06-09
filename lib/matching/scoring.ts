@@ -1,27 +1,13 @@
-export interface SkillComparisonResult {
-  readonly matchingSkills: string[];
-  readonly missingSkills: string[];
-  readonly score: number;
-}
-
-export interface ExperienceComparisonResult {
-  readonly score: number;
-  readonly recommendation: string;
-}
-
-export interface QualificationComparisonResult {
-  readonly score: number;
-  readonly recommendation: string;
-}
-
 export interface MatchScoreInput {
   readonly userSkills: readonly string[];
   readonly userEducation: string | null;
   readonly userDegree: string | null;
   readonly userExperienceYears: number | null;
+  readonly userLocation: string | null;
   readonly jobSkills: readonly string[];
   readonly jobQualification: string | null;
   readonly jobExperienceRequired: number | null;
+  readonly jobLocation: string | null;
 }
 
 export interface MatchScoreResult {
@@ -29,173 +15,144 @@ export interface MatchScoreResult {
   readonly matchingSkills: string[];
   readonly missingSkills: string[];
   readonly recommendation: string;
+  readonly skillsScore: number;
+  readonly experienceScore: number;
+  readonly educationScore: number;
+  readonly locationScore: number;
+  readonly matchReasons: string[];
 }
 
-const skillWeight = 0.5;
-const experienceWeight = 0.25;
-const qualificationWeight = 0.25;
+function normalizeSkill(skill: string): string {
+  return skill.trim().toLowerCase();
+}
 
-export function compareSkills(
+function calculateSkillsScore(
   userSkills: readonly string[],
-  jobSkills: readonly string[]
-): SkillComparisonResult {
-  const normalizedUserSkills = new Map(
-    userSkills.map((skill) => [normalizeComparableText(skill), skill.trim()] as const)
-  );
-  const requiredSkills = dedupeNormalizedValues(jobSkills);
-
-  if (requiredSkills.length === 0) {
-    return {
-      matchingSkills: [],
-      missingSkills: [],
-      score: 100
-    };
+  jobSkills: readonly string[],
+): { score: number; matching: string[]; missing: string[] } {
+  if (jobSkills.length === 0) {
+    return { score: 100, matching: [], missing: [] };
   }
 
-  const matchingSkills = requiredSkills
-    .filter((skill) => normalizedUserSkills.has(normalizeComparableText(skill)))
-    .map((skill) => normalizedUserSkills.get(normalizeComparableText(skill)) ?? skill);
-  const missingSkills = requiredSkills.filter(
-    (skill) => !normalizedUserSkills.has(normalizeComparableText(skill))
-  );
+  const normalizedUserSkills = new Set(userSkills.map(normalizeSkill));
+  const matching: string[] = [];
+  const missing: string[] = [];
 
-  return {
-    matchingSkills,
-    missingSkills,
-    score: Math.round((matchingSkills.length / requiredSkills.length) * 100)
-  };
-}
+  jobSkills.forEach((jobSkill) => {
+    const normalized = normalizeSkill(jobSkill);
 
-export function compareExperience(
-  userExperienceYears: number | null,
-  jobExperienceRequired: number | null
-): ExperienceComparisonResult {
-  const requiredYears = Math.max(jobExperienceRequired ?? 0, 0);
-  const userYears = Math.max(userExperienceYears ?? 0, 0);
+    if (normalizedUserSkills.has(normalized)) {
+      matching.push(jobSkill);
+    } else {
+      const partialMatch = [...normalizedUserSkills].some(
+        (userSkill) => userSkill.includes(normalized) || normalized.includes(userSkill),
+      );
 
-  if (requiredYears === 0) {
-    return {
-      score: 100,
-      recommendation: "No minimum experience requirement found."
-    };
-  }
-
-  if (userYears >= requiredYears) {
-    return {
-      score: 100,
-      recommendation: "Experience requirement met."
-    };
-  }
-
-  return {
-    score: Math.round((userYears / requiredYears) * 100),
-    recommendation: `Needs ${requiredYears - userYears} more year(s) of experience.`
-  };
-}
-
-export function compareQualification(
-  userEducation: string | null,
-  userDegree: string | null,
-  jobQualification: string | null
-): QualificationComparisonResult {
-  const requiredQualification = tokenize(jobQualification);
-
-  if (requiredQualification.length === 0) {
-    return {
-      score: 100,
-      recommendation: "No specific qualification requirement found."
-    };
-  }
-
-  const userQualificationTokens = new Set(tokenize(`${userEducation ?? ""} ${userDegree ?? ""}`));
-  const matchingTokenCount = requiredQualification.filter((token) =>
-    userQualificationTokens.has(token)
-  ).length;
-  const score = Math.round((matchingTokenCount / requiredQualification.length) * 100);
-
-  return {
-    score,
-    recommendation:
-      score >= 80
-        ? "Qualification requirement is a strong match."
-        : "Review qualification requirements before applying."
-  };
-}
-
-export function calculateMatchScore(input: MatchScoreInput): MatchScoreResult {
-  const skillComparison = compareSkills(input.userSkills, input.jobSkills);
-  const experienceComparison = compareExperience(
-    input.userExperienceYears,
-    input.jobExperienceRequired
-  );
-  const qualificationComparison = compareQualification(
-    input.userEducation,
-    input.userDegree,
-    input.jobQualification
-  );
-  const matchPercentage = Math.round(
-    skillComparison.score * skillWeight +
-      experienceComparison.score * experienceWeight +
-      qualificationComparison.score * qualificationWeight
-  );
-
-  return {
-    matchPercentage: clampScore(matchPercentage),
-    matchingSkills: skillComparison.matchingSkills,
-    missingSkills: skillComparison.missingSkills,
-    recommendation: buildRecommendation(
-      skillComparison,
-      experienceComparison,
-      qualificationComparison
-    )
-  };
-}
-
-function buildRecommendation(
-  skillComparison: SkillComparisonResult,
-  experienceComparison: ExperienceComparisonResult,
-  qualificationComparison: QualificationComparisonResult
-): string {
-  const skillMessage =
-    skillComparison.missingSkills.length === 0
-      ? "Required skills are covered."
-      : `Improve these skills: ${skillComparison.missingSkills.join(", ")}.`;
-
-  return [
-    skillMessage,
-    experienceComparison.recommendation,
-    qualificationComparison.recommendation
-  ].join(" ");
-}
-
-function dedupeNormalizedValues(values: readonly string[]): string[] {
-  const normalizedValues = new Map<string, string>();
-
-  values.forEach((value) => {
-    const normalizedValue = normalizeComparableText(value);
-
-    if (normalizedValue && !normalizedValues.has(normalizedValue)) {
-      normalizedValues.set(normalizedValue, value.trim());
+      if (partialMatch) {
+        matching.push(jobSkill);
+      } else {
+        missing.push(jobSkill);
+      }
     }
   });
 
-  return [...normalizedValues.values()];
+  const score = Math.round((matching.length / jobSkills.length) * 100);
+  return { score, matching, missing };
 }
 
-function tokenize(value: string | null): string[] {
-  return normalizeComparableText(value ?? "")
-    .split(" ")
-    .filter((token) => token.length > 1);
+function calculateExperienceScore(
+  userExperienceYears: number | null,
+  jobExperienceRequired: number | null,
+): number {
+  if (jobExperienceRequired == null || jobExperienceRequired === 0) return 100;
+  if (userExperienceYears == null) return 0;
+
+  if (userExperienceYears >= jobExperienceRequired) return 100;
+
+  return Math.max(0, Math.round((userExperienceYears / jobExperienceRequired) * 100));
 }
 
-function normalizeComparableText(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9+#.]+/g, " ")
-    .replace(/\s+/g, " ");
+function calculateEducationScore(
+  userEducation: string | null,
+  userDegree: string | null,
+  jobQualification: string | null,
+): number {
+  if (!jobQualification) return 100;
+
+  const userText = `${userEducation ?? ""} ${userDegree ?? ""}`.toLowerCase();
+  const jobText = jobQualification.toLowerCase();
+
+  if (!userText.trim()) return 30;
+
+  const keywords = ["bachelor", "master", "phd", "diploma", "degree", "b.tech", "mba"];
+
+  const userHas = keywords.some((k) => userText.includes(k));
+  const jobNeeds = keywords.some((k) => jobText.includes(k));
+
+  if (!jobNeeds) return 80;
+  if (userHas) return 100;
+  return 40;
 }
 
-function clampScore(value: number): number {
-  return Math.min(Math.max(value, 0), 100);
+function calculateLocationScore(
+  userLocation: string | null,
+  jobLocation: string | null,
+): number {
+  if (!jobLocation) return 100;
+  if (!userLocation) return 50;
+
+  const user = userLocation.toLowerCase();
+  const job = jobLocation.toLowerCase();
+
+  if (user === job) return 100;
+  if (job.includes("remote") || job.includes("anywhere")) return 100;
+  if (user.includes(job) || job.includes(user)) return 80;
+  return 30;
+}
+
+export function calculateMatchScore(input: MatchScoreInput): MatchScoreResult {
+  const skills = calculateSkillsScore(input.userSkills, input.jobSkills);
+  const experienceScore = calculateExperienceScore(
+    input.userExperienceYears,
+    input.jobExperienceRequired,
+  );
+  const educationScore = calculateEducationScore(
+    input.userEducation,
+    input.userDegree,
+    input.jobQualification,
+  );
+  const locationScore = calculateLocationScore(input.userLocation, input.jobLocation);
+
+  const matchPercentage = Math.round(
+    skills.score * 0.4 + experienceScore * 0.3 + educationScore * 0.2 + locationScore * 0.1,
+  );
+
+  const matchReasons: string[] = [];
+
+  if (skills.score >= 60) matchReasons.push("Skill Match");
+  if (experienceScore >= 60) matchReasons.push("Experience Match");
+  if (educationScore >= 60) matchReasons.push("Education Match");
+  if (locationScore >= 60) matchReasons.push("Location Match");
+
+  let recommendation = "Consider applying after improving your profile.";
+
+  if (matchPercentage >= 80) {
+    recommendation = "Excellent match — strongly recommended to apply.";
+  } else if (matchPercentage >= 60) {
+    recommendation = "Good match — worth applying with minor skill gaps.";
+  } else if (matchPercentage >= 40) {
+    recommendation = "Moderate match — upskill in missing areas first.";
+  }
+
+  return {
+    matchPercentage,
+    matchingSkills: skills.matching,
+    missingSkills: skills.missing,
+    recommendation,
+    skillsScore: skills.score,
+    experienceScore,
+    educationScore,
+    locationScore,
+    matchReasons,
+  };
 }

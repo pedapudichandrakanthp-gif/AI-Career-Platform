@@ -38,6 +38,14 @@ export function mergeExtractedProfile(
     merged.experience_years = extracted.experience_years;
   }
 
+  if ((!existing?.certifications || existing.certifications.length === 0) && extracted.certifications?.length) {
+    merged.certifications = [...extracted.certifications];
+  }
+
+  if (!existing?.projects?.trim() && extracted.projects?.trim()) {
+    merged.projects = extracted.projects.trim();
+  }
+
   merged.updated_at = new Date().toISOString();
 
   return merged;
@@ -52,6 +60,8 @@ export function buildProfileFromExtracted(extracted: ExtractedProfile): Record<s
     degree: extracted.degree?.trim() || null,
     skills: extracted.skills.length > 0 ? [...extracted.skills] : null,
     experience_years: extracted.experience_years,
+    certifications: extracted.certifications?.length ? [...extracted.certifications] : null,
+    projects: extracted.projects?.trim() || null,
     updated_at: new Date().toISOString(),
   };
 }

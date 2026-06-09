@@ -96,6 +96,7 @@ export default function JobDetailsPage() {
           Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
+          jobId: job.id,
           title: job.title,
           description: job.description,
           skills: job.skills,

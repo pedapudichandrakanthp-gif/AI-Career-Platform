@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import AuthShell from "@/components/auth/AuthShell";
 import { supabase } from "@/lib/supabase";
 
 export default function RegisterPage() {
@@ -12,106 +13,89 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleRegister = async () => {
     setLoading(true);
+    setError("");
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+    const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
 
-    if (error) {
-      alert(error.message);
+    if (signUpError) {
+      setError(signUpError.message);
       setLoading(false);
       return;
     }
 
     if (data.user) {
       const { error: insertError } = await supabase.from("users").insert([
-        {
-          id: data.user.id,
-          email: email,
-          full_name: fullName,
-        },
+        { id: data.user.id, email, full_name: fullName },
       ]);
 
       if (insertError) {
-        console.error(insertError);
-        alert(insertError.message);
+        setError(insertError.message);
         setLoading(false);
         return;
       }
     }
 
-    alert("Registration Successful");
     router.push("/login");
   };
 
   return (
-    <main className="page-main flex items-center justify-center">
-      <div className="card w-full max-w-md space-y-4">
-        <h1 className="section-title">Create Account</h1>
-        <p className="text-sm text-slate-600 dark:text-slate-400">
-          Start your AI-powered job search today.
-        </p>
+    <AuthShell
+      title="Create your account"
+      subtitle="Start finding better opportunities faster with AvsarGrid."
+    >
+      {error ? <div className="alert-error mb-4">{error}</div> : null}
 
+      <div className="space-y-4">
         <div>
-          <label className="label" htmlFor="fullName">
-            Full Name
-          </label>
+          <label className="label" htmlFor="fullName">Full Name</label>
           <input
             id="fullName"
             className="input"
-            placeholder="Full Name"
+            placeholder="Your full name"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
           />
         </div>
 
         <div>
-          <label className="label" htmlFor="email">
-            Email
-          </label>
+          <label className="label" htmlFor="email">Email</label>
           <input
             id="email"
+            type="email"
             className="input"
-            placeholder="Email"
+            placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
 
         <div>
-          <label className="label" htmlFor="password">
-            Password
-          </label>
+          <label className="label" htmlFor="password">Password</label>
           <input
             id="password"
             type="password"
             className="input"
-            placeholder="Password"
+            placeholder="Create a strong password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
 
-        <button
-          type="button"
-          onClick={handleRegister}
-          disabled={loading}
-          className="btn-primary w-full"
-        >
-          {loading ? "Creating account..." : "Register"}
+        <button type="button" onClick={handleRegister} disabled={loading} className="btn-primary w-full py-3">
+          {loading ? "Creating account..." : "Get Started"}
         </button>
 
-        <p className="text-center text-sm text-slate-600 dark:text-slate-400">
+        <p className="text-center text-sm text-[var(--muted-foreground)]">
           Already have an account?{" "}
           <Link href="/login" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
             Sign in
           </Link>
         </p>
       </div>
-    </main>
+    </AuthShell>
   );
 }

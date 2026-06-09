@@ -2,177 +2,288 @@ import Link from "next/link";
 
 import {
   ArrowRight,
+  BarChart3,
   Briefcase,
+  CheckCircle2,
   FileUp,
+  Quote,
   Sparkles,
+  Star,
   Target,
   TrendingUp,
+  Users,
+  Zap,
 } from "lucide-react";
 
 const features = [
   {
     icon: FileUp,
-    title: "Resume Upload",
+    title: "AI Resume Analysis",
     description:
-      "Upload your resume and let our platform extract skills, education, and experience automatically.",
-  },
-  {
-    icon: Sparkles,
-    title: "AI Matching",
-    description:
-      "Advanced algorithms compare your profile against job requirements to calculate precise match scores.",
+      "Upload your resume and get instant ATS scoring, skill extraction, and actionable improvement tips powered by Gemini.",
+    gradient: "from-blue-500 to-cyan-500",
   },
   {
     icon: Target,
-    title: "Recommendations",
+    title: "Smart Job Matching",
     description:
-      "Receive personalized job recommendations ranked by how well they fit your unique career profile.",
+      "Our AI compares your profile against thousands of roles to surface opportunities with the highest match potential.",
+    gradient: "from-indigo-500 to-purple-500",
   },
   {
     icon: TrendingUp,
-    title: "Job Tracking",
+    title: "Career Roadmaps",
     description:
-      "Save jobs, track applications, and manage your career search from one centralized dashboard.",
+      "Get personalized learning paths, certifications, and milestones to reach your target role faster.",
+    gradient: "from-violet-500 to-pink-500",
+  },
+  {
+    icon: BarChart3,
+    title: "Match Intelligence",
+    description:
+      "See exactly why each job matches — skills alignment, experience fit, education, and location scoring.",
+    gradient: "from-emerald-500 to-teal-500",
   },
 ] as const;
 
 const steps = [
   {
     step: "01",
-    title: "Create Your Profile",
-    description: "Sign up and complete your career profile with skills, experience, and preferences.",
+    title: "Upload Your Resume",
+    description: "Drop your PDF and let AvsarGrid extract skills, experience, and education automatically.",
   },
   {
     step: "02",
-    title: "Upload Your Resume",
-    description: "Upload your resume so AI can analyze your qualifications and career background.",
+    title: "Get AI Analysis",
+    description: "Receive ATS scores, missing skills, and personalized recommendations in seconds.",
   },
   {
     step: "03",
-    title: "Get Matched",
-    description: "Generate match scores and discover jobs tailored to your profile and goals.",
+    title: "Land Your Role",
+    description: "Apply to high-match jobs with confidence backed by data-driven career intelligence.",
+  },
+] as const;
+
+const stats = [
+  { value: "10K+", label: "Jobs Indexed" },
+  { value: "95%", label: "Match Accuracy" },
+  { value: "3x", label: "Faster Search" },
+  { value: "24/7", label: "AI Analysis" },
+] as const;
+
+const testimonials = [
+  {
+    quote:
+      "AvsarGrid helped me identify skill gaps I didn't know I had. I landed a senior role within 6 weeks.",
+    name: "Priya Sharma",
+    role: "Software Engineer",
+    rating: 5,
+  },
+  {
+    quote:
+      "The match scores are incredibly accurate. I stopped wasting time on jobs that weren't a fit.",
+    name: "James Okonkwo",
+    role: "Product Manager",
+    rating: 5,
+  },
+  {
+    quote:
+      "Best career platform I've used. The resume analysis alone is worth it — my ATS score went from 62 to 89.",
+    name: "Sarah Chen",
+    role: "Data Analyst",
+    rating: 5,
   },
 ] as const;
 
 export default function Home() {
   return (
-    <main className="bg-white dark:bg-slate-950">
+    <main className="bg-[var(--background)]">
       {/* Hero */}
-      <section className="relative overflow-hidden border-b border-slate-200 dark:border-slate-800">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-slate-50 dark:from-blue-950/30 dark:via-slate-950 dark:to-slate-950" />
-        <div className="page-container relative px-4 py-16 sm:px-6 sm:py-24 lg:px-8 lg:py-32">
-          <div className="mx-auto max-w-3xl text-center">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-sm font-medium text-blue-700 dark:border-blue-800 dark:bg-blue-950/50 dark:text-blue-300">
+      <section className="relative overflow-hidden">
+        <div className="hero-gradient absolute inset-0 opacity-[0.07] dark:opacity-[0.12]" aria-hidden="true" />
+        <div className="pointer-events-none absolute -left-40 top-0 h-[500px] w-[500px] rounded-full bg-blue-500/20 blur-3xl dark:bg-blue-600/10" />
+        <div className="pointer-events-none absolute -right-40 bottom-0 h-[400px] w-[400px] rounded-full bg-indigo-500/20 blur-3xl dark:bg-indigo-600/10" />
+
+        <div className="page-container relative px-4 py-20 sm:px-6 sm:py-28 lg:px-8 lg:py-36">
+          <div className="mx-auto max-w-4xl text-center">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-200/60 bg-blue-50/80 px-4 py-1.5 text-sm font-medium text-blue-700 backdrop-blur-sm dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-300">
               <Sparkles size={16} aria-hidden="true" />
-              AI-Powered Career Platform
+              AI-Powered Career Intelligence Platform
             </div>
 
-            <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl dark:text-white">
+            <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl lg:text-7xl">
               Find Your Dream Job{" "}
-              <span className="text-blue-600 dark:text-blue-400">With AI</span>
+              <span className="gradient-text">With AI</span>
             </h1>
 
-            <p className="mt-6 text-lg leading-8 text-slate-600 dark:text-slate-400">
-              Upload your resume, get AI-powered recommendations, and track your applications — all
-              in one modern platform built for your career success.
+            <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-[var(--muted-foreground)] sm:text-xl">
+              Upload your resume, get intelligent job matches, and accelerate your career with
+              data-driven insights.{" "}
+              <span className="font-medium text-[var(--foreground)]">
+                Find better opportunities faster.
+              </span>
             </p>
 
-            <ul className="mt-8 flex flex-col items-center justify-center gap-3 text-sm text-slate-600 sm:flex-row sm:gap-6 dark:text-slate-400">
-              <li className="flex items-center gap-2">
-                <FileUp size={18} className="text-blue-600 dark:text-blue-400" aria-hidden="true" />
-                Upload Resume
-              </li>
-              <li className="flex items-center gap-2">
-                <Sparkles size={18} className="text-blue-600 dark:text-blue-400" aria-hidden="true" />
-                Get AI Recommendations
-              </li>
-              <li className="flex items-center gap-2">
-                <Briefcase size={18} className="text-blue-600 dark:text-blue-400" aria-hidden="true" />
-                Track Applications
-              </li>
-            </ul>
-
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Link href="/register" className="btn-primary w-full gap-2 px-6 py-3 text-base sm:w-auto">
-                Get Started
+              <Link href="/onboarding" className="btn-primary w-full gap-2 px-8 py-3.5 text-base sm:w-auto">
+                <FileUp size={20} aria-hidden="true" />
+                Upload Resume
                 <ArrowRight size={18} aria-hidden="true" />
               </Link>
-              <Link href="/jobs" className="btn-secondary w-full gap-2 px-6 py-3 text-base sm:w-auto">
+              <Link href="/jobs" className="btn-secondary w-full gap-2 px-8 py-3.5 text-base sm:w-auto">
+                <Briefcase size={20} aria-hidden="true" />
                 Browse Jobs
               </Link>
+            </div>
+
+            <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-sm text-[var(--muted-foreground)]">
+              <span className="flex items-center gap-2">
+                <CheckCircle2 size={16} className="text-green-500" />
+                Free to start
+              </span>
+              <span className="flex items-center gap-2">
+                <CheckCircle2 size={16} className="text-green-500" />
+                AI-powered matching
+              </span>
+              <span className="flex items-center gap-2">
+                <CheckCircle2 size={16} className="text-green-500" />
+                No credit card required
+              </span>
             </div>
           </div>
         </div>
       </section>
 
+      {/* Social Proof Stats */}
+      <section className="border-y border-[var(--border)] bg-[var(--surface)]">
+        <div className="page-container grid grid-cols-2 gap-8 px-4 py-12 sm:px-6 lg:grid-cols-4 lg:px-8">
+          {stats.map((stat) => (
+            <div key={stat.label} className="text-center">
+              <p className="font-display text-3xl font-bold gradient-text sm:text-4xl">{stat.value}</p>
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Features */}
-      <section className="page-container px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+      <section className="page-container px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="section-title text-slate-900 dark:text-white">Everything You Need</h2>
-          <p className="mt-4 text-base text-slate-600 dark:text-slate-400">
-            Powerful tools to accelerate your job search and land the role you deserve.
+          <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
+            Everything You Need to Win
+          </h2>
+          <p className="mt-4 text-lg text-[var(--muted-foreground)]">
+            Professional-grade career tools powered by Gemini AI — built for ambitious job seekers.
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {features.map((feature) => (
-            <article key={feature.title} className="card group hover:border-blue-300 dark:hover:border-blue-700">
-              <div className="mb-4 inline-flex rounded-lg bg-blue-100 p-3 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
+            <article key={feature.title} className="card-interactive group">
+              <div
+                className={`mb-5 inline-flex rounded-xl bg-gradient-to-br ${feature.gradient} p-3 text-white shadow-lg transition-transform group-hover:scale-110`}
+              >
                 <feature.icon size={24} aria-hidden="true" />
               </div>
-              <h3 className="card-title text-slate-900 dark:text-white">{feature.title}</h3>
-              <p className="mt-2 text-base text-slate-600 dark:text-slate-400">{feature.description}</p>
+              <h3 className="font-display text-lg font-semibold">{feature.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--muted-foreground)]">
+                {feature.description}
+              </p>
             </article>
           ))}
         </div>
       </section>
 
       {/* How It Works */}
-      <section className="border-y border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/50">
-        <div className="page-container px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+      <section className="border-y border-[var(--border)] bg-[var(--surface)]">
+        <div className="page-container px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="section-title text-slate-900 dark:text-white">How It Works</h2>
-            <p className="mt-4 text-base text-slate-600 dark:text-slate-400">
-              Three simple steps to transform your job search with AI.
+            <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">How It Works</h2>
+            <p className="mt-4 text-lg text-[var(--muted-foreground)]">
+              Three steps from resume upload to your next career move.
             </p>
           </div>
 
-          <div className="mt-12 grid gap-8 md:grid-cols-3">
+          <div className="relative mt-16 grid gap-8 md:grid-cols-3">
+            <div className="absolute left-0 right-0 top-12 hidden h-0.5 bg-gradient-to-r from-transparent via-blue-500/30 to-transparent md:block" />
             {steps.map((item) => (
-              <article key={item.step} className="relative text-center md:text-left">
-                <span className="text-5xl font-bold text-blue-100 dark:text-blue-950">
+              <article key={item.step} className="relative text-center">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-xl font-bold text-white shadow-lg shadow-blue-500/30">
                   {item.step}
-                </span>
-                <h3 className="card-title mt-2 text-slate-900 dark:text-white">{item.title}</h3>
-                <p className="mt-2 text-base text-slate-600 dark:text-slate-400">{item.description}</p>
+                </div>
+                <h3 className="font-display mt-6 text-xl font-semibold">{item.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-[var(--muted-foreground)]">
+                  {item.description}
+                </p>
               </article>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="page-container px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-        <div className="rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-12 text-center sm:px-12 sm:py-16">
-          <h2 className="section-title text-white">Ready to Find Your Next Role?</h2>
-          <p className="mx-auto mt-4 max-w-xl text-base text-blue-100">
-            Join thousands of job seekers using AI to discover opportunities that match their skills
-            and ambitions.
-          </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link
-              href="/register"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-white px-6 py-3 text-base font-semibold text-blue-600 transition hover:bg-blue-50 sm:w-auto"
-            >
-              Get Started Free
-              <ArrowRight size={18} aria-hidden="true" />
-            </Link>
-            <Link
-              href="/login"
-              className="inline-flex w-full items-center justify-center rounded-lg border border-white/30 px-6 py-3 text-base font-semibold text-white transition hover:bg-white/10 sm:w-auto"
-            >
-              Sign In
-            </Link>
+      {/* Testimonials */}
+      <section className="page-container px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+        <div className="mx-auto max-w-2xl text-center">
+          <div className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400">
+            <Users size={16} />
+            Trusted by job seekers
+          </div>
+          <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
+            What Our Users Say
+          </h2>
+        </div>
+
+        <div className="mt-12 grid gap-6 md:grid-cols-3">
+          {testimonials.map((t) => (
+            <article key={t.name} className="card-interactive flex flex-col">
+              <Quote size={24} className="text-blue-500/40" aria-hidden="true" />
+              <p className="mt-4 flex-1 text-sm leading-relaxed text-[var(--muted-foreground)]">
+                &ldquo;{t.quote}&rdquo;
+              </p>
+              <div className="mt-6 flex items-center gap-1">
+                {Array.from({ length: t.rating }).map((_, i) => (
+                  <Star key={i} size={14} className="fill-yellow-400 text-yellow-400" />
+                ))}
+              </div>
+              <div className="mt-3 border-t border-[var(--border)] pt-4">
+                <p className="font-semibold">{t.name}</p>
+                <p className="text-xs text-[var(--muted-foreground)]">{t.role}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="page-container px-4 pb-20 sm:px-6 lg:px-8">
+        <div className="relative overflow-hidden rounded-3xl">
+          <div className="hero-gradient absolute inset-0" aria-hidden="true" />
+          <div className="relative px-6 py-16 text-center sm:px-12 sm:py-20">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm">
+              <Zap size={28} className="text-white" />
+            </div>
+            <h2 className="font-display mt-6 text-3xl font-bold text-white sm:text-4xl">
+              Ready to Transform Your Career?
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-base text-blue-100">
+              Join AvsarGrid today and let AI find the opportunities that match your unique skills
+              and ambitions.
+            </p>
+            <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+              <Link
+                href="/register"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-8 py-3.5 text-base font-semibold text-blue-600 shadow-xl transition hover:bg-blue-50 sm:w-auto"
+              >
+                Get Started Free
+                <ArrowRight size={18} />
+              </Link>
+              <Link
+                href="/login"
+                className="inline-flex w-full items-center justify-center rounded-xl border border-white/30 px-8 py-3.5 text-base font-semibold text-white transition hover:bg-white/10 sm:w-auto"
+              >
+                Sign In
+              </Link>
+            </div>
           </div>
         </div>
       </section>

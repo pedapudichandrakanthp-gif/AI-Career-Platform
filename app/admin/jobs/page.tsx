@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 
 import { Pencil, Plus, Trash2 } from "lucide-react";
 
+import { AdminRoute } from "@/components/auth/AdminRoute";
 import { supabase } from "@/lib/supabase";
 import type { JobRow } from "@/types/database";
 
@@ -86,6 +87,9 @@ function formToPayload(form: JobFormData, isCreate: boolean) {
 
   if (isCreate) {
     payload.source = "Manual Admin";
+    const expires = new Date();
+    expires.setDate(expires.getDate() + 30);
+    payload.expires_at = expires.toISOString();
   }
 
   return payload;
@@ -221,6 +225,7 @@ export default function AdminJobsPage() {
   };
 
   return (
+    <AdminRoute>
     <main className="page-main">
       <section className="page-container">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -544,5 +549,6 @@ export default function AdminJobsPage() {
         </div>
       ) : null}
     </main>
+    </AdminRoute>
   );
 }

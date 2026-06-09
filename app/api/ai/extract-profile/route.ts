@@ -36,6 +36,8 @@ export async function POST(request: NextRequest) {
         degree: profile.degree ?? "",
         experience: profile.experience ?? "",
         experience_years: profile.experience_years ?? null,
+        certifications: profile.certifications ?? [],
+        projects: profile.projects ?? "",
       },
     });
   } catch (error) {

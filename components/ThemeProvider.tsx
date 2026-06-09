@@ -13,7 +13,7 @@ export default function ThemeProvider({
       attribute="class"
       defaultTheme="system"
       enableSystem
-      storageKey="ai-career-theme"
+      storageKey="avsargrid-theme"
       disableTransitionOnChange={false}
     >
       {children}

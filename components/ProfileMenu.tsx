@@ -4,13 +4,14 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { ChevronDown, FileText, LogOut, User } from "lucide-react";
+import { ChevronDown, FileText, LogOut, Settings, User } from "lucide-react";
 
 import { supabase } from "@/lib/supabase";
 
 const menuItems = [
-  { href: "/profile", label: "Profile", icon: User },
+  { href: "/profile", label: "My Profile", icon: User },
   { href: "/resumes", label: "Resume", icon: FileText },
+  { href: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
 interface ProfileMenuProps {
@@ -31,9 +32,7 @@ export default function ProfileMenu({ onNavigate }: ProfileMenuProps) {
     }
 
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
+      if (event.key === "Escape") setOpen(false);
     }
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -46,7 +45,10 @@ export default function ProfileMenu({ onNavigate }: ProfileMenuProps) {
   }, []);
 
   const isProfileSectionActive =
-    pathname === "/profile" || pathname === "/resumes" || pathname.startsWith("/onboarding");
+    pathname === "/profile" ||
+    pathname === "/resumes" ||
+    pathname === "/settings" ||
+    pathname.startsWith("/onboarding");
 
   const handleLogout = async () => {
     setOpen(false);
@@ -76,7 +78,7 @@ export default function ProfileMenu({ onNavigate }: ProfileMenuProps) {
         Profile
         <ChevronDown
           size={16}
-          className={`transition-transform ${open ? "rotate-180" : ""}`}
+          className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`}
           aria-hidden="true"
         />
       </button>
@@ -85,10 +87,10 @@ export default function ProfileMenu({ onNavigate }: ProfileMenuProps) {
         <div
           id="profile-menu"
           role="menu"
-          className="absolute right-0 z-50 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900"
+          className="absolute right-0 z-50 mt-2 w-52 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-lg"
         >
           {menuItems.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const active = pathname === item.href;
             const Icon = item.icon;
 
             return (
@@ -97,10 +99,10 @@ export default function ProfileMenu({ onNavigate }: ProfileMenuProps) {
                 href={item.href}
                 role="menuitem"
                 onClick={handleItemClick}
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${
+                className={`flex items-center gap-2.5 px-4 py-3 text-sm font-medium transition-colors ${
                   active
                     ? "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400"
-                    : "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                    : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
                 }`}
               >
                 <Icon size={16} aria-hidden="true" />
@@ -113,7 +115,7 @@ export default function ProfileMenu({ onNavigate }: ProfileMenuProps) {
             type="button"
             role="menuitem"
             onClick={handleLogout}
-            className="flex w-full items-center gap-2 border-t border-slate-200 px-4 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 dark:border-slate-700 dark:text-red-400 dark:hover:bg-red-950/30"
+            className="flex w-full items-center gap-2.5 border-t border-[var(--border)] px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
           >
             <LogOut size={16} aria-hidden="true" />
             Logout

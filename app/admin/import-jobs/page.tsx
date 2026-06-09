@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { Sparkles } from "lucide-react";
 
+import { AdminRoute } from "@/components/auth/AdminRoute";
 import { supabase } from "@/lib/supabase";
 import type { ImportedJobData } from "@/types/ai";
 
@@ -126,6 +127,7 @@ export default function AdminImportJobsPage() {
   };
 
   return (
+    <AdminRoute>
     <main className="page-main">
       <section className="page-container max-w-3xl">
         <h1 className="page-title">Import Job with AI</h1>
@@ -318,5 +320,6 @@ export default function AdminImportJobsPage() {
         )}
       </section>
     </main>
+    </AdminRoute>
   );
 }

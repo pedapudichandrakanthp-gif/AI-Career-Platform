@@ -3,22 +3,33 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Search } from "lucide-react";
+import { Bookmark, Building2, ExternalLink, Filter, MapPin, Search, SlidersHorizontal } from "lucide-react";
 
 import { supabase } from "@/lib/supabase";
-import type { JobRow } from "@/types/database";
+import type { JobFilters, JobRow, MatchScoreRow } from "@/types/database";
 
 export default function JobsPage() {
   const [jobs, setJobs] = useState<JobRow[]>([]);
+  const [matchScores, setMatchScores] = useState<Map<string, number>>(new Map());
   const [keyword, setKeyword] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [jobTypeFilter, setJobTypeFilter] = useState("");
+  const [experienceFilter, setExperienceFilter] = useState("");
+  const [salaryMin, setSalaryMin] = useState("");
+  const [workModeFilter, setWorkModeFilter] = useState("");
+  const [saveSearchName, setSaveSearchName] = useState("");
+  const [message, setMessage] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const fetchJobs = useCallback(async () => {
+    const now = new Date().toISOString();
+
     const { data, error } = await supabase
       .from("jobs")
       .select("*")
+      .eq("is_active", true)
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -27,35 +38,37 @@ export default function JobsPage() {
     }
 
     setJobs((data ?? []) as JobRow[]);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      const { data: scores } = await supabase
+        .from("match_scores")
+        .select("job_id, match_percentage")
+        .eq("user_id", user.id);
+
+      const scoreMap = new Map<string, number>();
+      ((scores ?? []) as Pick<MatchScoreRow, "job_id" | "match_percentage">[]).forEach((s) => {
+        if (s.job_id && s.match_percentage != null) scoreMap.set(s.job_id, s.match_percentage);
+      });
+      setMatchScores(scoreMap);
+    }
   }, []);
 
   useEffect(() => {
     fetchJobs();
   }, [fetchJobs]);
 
-  const locations = useMemo(() => {
-    const values = jobs
-      .map((job) => job.location)
-      .filter((value): value is string => Boolean(value));
-    return [...new Set(values)].sort();
-  }, [jobs]);
-
-  const categories = useMemo(() => {
-    const values = jobs
-      .map((job) => job.category)
-      .filter((value): value is string => Boolean(value));
-    return [...new Set(values)].sort();
-  }, [jobs]);
-
-  const jobTypes = useMemo(() => {
-    const values = jobs
-      .map((job) => job.job_type)
-      .filter((value): value is string => Boolean(value));
-    return [...new Set(values)].sort();
-  }, [jobs]);
+  const locations = useMemo(() => [...new Set(jobs.map((j) => j.location).filter(Boolean))].sort(), [jobs]);
+  const categories = useMemo(() => [...new Set(jobs.map((j) => j.category).filter(Boolean))].sort(), [jobs]);
+  const jobTypes = useMemo(() => [...new Set(jobs.map((j) => j.job_type).filter(Boolean))].sort(), [jobs]);
+  const workModes = useMemo(() => [...new Set(jobs.map((j) => j.work_mode).filter(Boolean))].sort(), [jobs]);
 
   const filteredJobs = useMemo(() => {
     const searchTerm = keyword.trim().toLowerCase();
+    const minSalary = salaryMin ? Number(salaryMin) : null;
 
     return jobs.filter((job) => {
       const matchesKeyword =
@@ -67,10 +80,65 @@ export default function JobsPage() {
       const matchesLocation = !locationFilter || job.location === locationFilter;
       const matchesCategory = !categoryFilter || job.category === categoryFilter;
       const matchesJobType = !jobTypeFilter || job.job_type === jobTypeFilter;
+      const matchesWorkMode = !workModeFilter || job.work_mode === workModeFilter;
 
-      return matchesKeyword && matchesLocation && matchesCategory && matchesJobType;
+      const matchesExperience =
+        !experienceFilter ||
+        (experienceFilter === "0-2" && (job.experience_required ?? 0) <= 2) ||
+        (experienceFilter === "3-5" &&
+          (job.experience_required ?? 0) >= 3 &&
+          (job.experience_required ?? 0) <= 5) ||
+        (experienceFilter === "5+" && (job.experience_required ?? 0) > 5);
+
+      const matchesSalary = !minSalary || (job.salary_max != null && job.salary_max >= minSalary);
+
+      return (
+        matchesKeyword &&
+        matchesLocation &&
+        matchesCategory &&
+        matchesJobType &&
+        matchesWorkMode &&
+        matchesExperience &&
+        matchesSalary
+      );
     });
-  }, [jobs, keyword, locationFilter, categoryFilter, jobTypeFilter]);
+  }, [jobs, keyword, locationFilter, categoryFilter, jobTypeFilter, experienceFilter, salaryMin, workModeFilter]);
+
+  const saveSearch = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      alert("Please login to save searches");
+      return;
+    }
+
+    if (!saveSearchName.trim()) {
+      alert("Enter a name for this search");
+      return;
+    }
+
+    const filters: JobFilters = {
+      keyword,
+      location: locationFilter,
+      category: categoryFilter,
+      jobType: jobTypeFilter,
+      experience: experienceFilter,
+      salaryMin: salaryMin ? Number(salaryMin) : undefined,
+      workMode: workModeFilter,
+    };
+
+    const { error } = await supabase.from("saved_searches").insert([
+      { user_id: user.id, name: saveSearchName, filters },
+    ]);
+
+    if (error) alert(error.message);
+    else {
+      setMessage("Search saved!");
+      setSaveSearchName("");
+    }
+  };
 
   const saveJob = async (jobId: string) => {
     const {
@@ -82,19 +150,9 @@ export default function JobsPage() {
       return;
     }
 
-    const { error } = await supabase.from("saved_jobs").insert([
-      {
-        user_id: user.id,
-        job_id: jobId,
-      },
-    ]);
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    alert("Job Saved");
+    const { error } = await supabase.from("saved_jobs").insert([{ user_id: user.id, job_id: jobId }]);
+    if (error) alert(error.message);
+    else setMessage("Job saved!");
   };
 
   const clearFilters = () => {
@@ -102,168 +160,214 @@ export default function JobsPage() {
     setLocationFilter("");
     setCategoryFilter("");
     setJobTypeFilter("");
+    setExperienceFilter("");
+    setSalaryMin("");
+    setWorkModeFilter("");
   };
 
-  const hasActiveFilters = keyword || locationFilter || categoryFilter || jobTypeFilter;
+  const hasActiveFilters =
+    keyword || locationFilter || categoryFilter || jobTypeFilter || experienceFilter || salaryMin || workModeFilter;
 
   return (
     <main className="page-main">
       <section className="page-container">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="page-title">Jobs</h1>
-            <p className="mt-2 text-base text-slate-600 dark:text-slate-400">
-              Browse and filter available opportunities.
-            </p>
-          </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {filteredJobs.length} of {jobs.length} jobs
+        {/* Header + Search */}
+        <div className="text-center sm:text-left">
+          <p className="text-sm font-medium text-blue-600 dark:text-blue-400">AvsarGrid Jobs</p>
+          <h1 className="page-title mt-1">Find Your Next Role</h1>
+          <p className="mt-2 text-[var(--muted-foreground)]">
+            {filteredJobs.length} of {jobs.length} active opportunities
           </p>
         </div>
 
-        <div className="card mt-6">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="sm:col-span-2 lg:col-span-1">
-              <label className="label" htmlFor="keyword-search">
-                Keyword Search
-              </label>
-              <div className="relative">
-                <Search
-                  size={18}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                  aria-hidden="true"
-                />
-                <input
-                  id="keyword-search"
-                  type="search"
-                  className="input pl-10"
-                  placeholder="Title, company, location..."
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
-                />
-              </div>
-            </div>
+        {message ? <div className="alert-success mt-4">{message}</div> : null}
 
-            <div>
-              <label className="label" htmlFor="location-filter">
-                Location
-              </label>
-              <select
-                id="location-filter"
-                className="input"
-                value={locationFilter}
-                onChange={(e) => setLocationFilter(e.target.value)}
-              >
-                <option value="">All Locations</option>
-                {locations.map((location) => (
-                  <option key={location} value={location}>
-                    {location}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="label" htmlFor="category-filter">
-                Category
-              </label>
-              <select
-                id="category-filter"
-                className="input"
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-              >
-                <option value="">All Categories</option>
-                {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="label" htmlFor="job-type-filter">
-                Job Type
-              </label>
-              <select
-                id="job-type-filter"
-                className="input"
-                value={jobTypeFilter}
-                onChange={(e) => setJobTypeFilter(e.target.value)}
-              >
-                <option value="">All Types</option>
-                {jobTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {hasActiveFilters ? (
-            <button type="button" onClick={clearFilters} className="btn-secondary mt-4">
-              Clear Filters
-            </button>
-          ) : null}
+        {/* Large search bar */}
+        <div className="relative mt-6">
+          <Search size={20} className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
+          <input
+            type="search"
+            className="input py-4 pl-14 pr-4 text-lg shadow-md"
+            placeholder="Search by title, company, or location..."
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+          />
         </div>
 
-        <div className="mt-6 grid gap-4">
-          {filteredJobs.length === 0 ? (
-            <p className="card text-center text-slate-600 dark:text-slate-400">
-              {jobs.length === 0 ? "No jobs found." : "No jobs match your filters."}
-            </p>
-          ) : (
-            filteredJobs.map((job) => (
-              <article className="card" key={job.id}>
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <Link href={`/jobs/${job.id}`}>
-                      <h2 className="card-title text-blue-600 hover:text-blue-500 dark:text-blue-400">
-                        {job.title ?? "Untitled Job"}
-                      </h2>
-                    </Link>
+        <div className="mt-6 flex gap-6">
+          {/* Filter Sidebar */}
+          <aside
+            className={`${sidebarOpen ? "block" : "hidden"} w-full shrink-0 lg:block lg:w-72`}
+          >
+            <div className="section-card sticky top-24">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <SlidersHorizontal size={18} />
+                  <h2 className="font-display font-semibold">Filters</h2>
+                </div>
+                {hasActiveFilters ? (
+                  <button type="button" onClick={clearFilters} className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                    Clear
+                  </button>
+                ) : null}
+              </div>
 
-                    <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-3">
-                      <div>
-                        <dt className="font-medium text-slate-500 dark:text-slate-400">Company</dt>
-                        <dd className="text-slate-900 dark:text-slate-200">
-                          {job.company_name ?? "Not specified"}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="font-medium text-slate-500 dark:text-slate-400">Location</dt>
-                        <dd className="text-slate-900 dark:text-slate-200">
-                          {job.location ?? "Not specified"}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="font-medium text-slate-500 dark:text-slate-400">Category</dt>
-                        <dd className="text-slate-900 dark:text-slate-200">
-                          {job.category ?? "Not specified"}
-                        </dd>
-                      </div>
-                    </dl>
+              <div className="mt-5 space-y-4">
+                <div>
+                  <label className="label" htmlFor="location-filter">Location</label>
+                  <select id="location-filter" className="input text-sm" value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)}>
+                    <option value="">All Locations</option>
+                    {locations.map((l) => <option key={l} value={l!}>{l}</option>)}
+                  </select>
+                </div>
 
-                    {job.job_type ? (
-                      <span className="mt-3 inline-block rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
-                        {job.job_type}
-                      </span>
-                    ) : null}
-                  </div>
+                <div>
+                  <label className="label" htmlFor="category-filter">Category</label>
+                  <select id="category-filter" className="input text-sm" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+                    <option value="">All Categories</option>
+                    {categories.map((c) => <option key={c} value={c!}>{c}</option>)}
+                  </select>
+                </div>
 
-                  <button
-                    className="btn-success shrink-0"
-                    onClick={() => saveJob(job.id)}
-                    type="button"
-                  >
-                    Save Job
+                <div>
+                  <label className="label" htmlFor="job-type-filter">Job Type</label>
+                  <select id="job-type-filter" className="input text-sm" value={jobTypeFilter} onChange={(e) => setJobTypeFilter(e.target.value)}>
+                    <option value="">All Types</option>
+                    {jobTypes.map((t) => <option key={t} value={t!}>{t}</option>)}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label" htmlFor="work-mode-filter">Work Mode</label>
+                  <select id="work-mode-filter" className="input text-sm" value={workModeFilter} onChange={(e) => setWorkModeFilter(e.target.value)}>
+                    <option value="">All</option>
+                    <option value="Remote">Remote</option>
+                    <option value="Hybrid">Hybrid</option>
+                    <option value="Onsite">Onsite</option>
+                    {workModes.filter((m) => !["Remote", "Hybrid", "Onsite"].includes(m!)).map((m) => (
+                      <option key={m} value={m!}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label" htmlFor="experience-filter">Experience</label>
+                  <select id="experience-filter" className="input text-sm" value={experienceFilter} onChange={(e) => setExperienceFilter(e.target.value)}>
+                    <option value="">Any</option>
+                    <option value="0-2">0–2 years</option>
+                    <option value="3-5">3–5 years</option>
+                    <option value="5+">5+ years</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label" htmlFor="salary-min">Min Salary</label>
+                  <input id="salary-min" type="number" className="input text-sm" placeholder="50000" value={salaryMin} onChange={(e) => setSalaryMin(e.target.value)} />
+                </div>
+
+                <div className="border-t border-[var(--border)] pt-4">
+                  <input className="input text-sm" placeholder="Save search as..." value={saveSearchName} onChange={(e) => setSaveSearchName(e.target.value)} />
+                  <button type="button" onClick={saveSearch} className="btn-secondary mt-2 w-full gap-2 text-sm">
+                    <Bookmark size={14} />
+                    Save Search
                   </button>
                 </div>
-              </article>
-            ))
-          )}
+              </div>
+            </div>
+          </aside>
+
+          {/* Job listings */}
+          <div className="min-w-0 flex-1">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="btn-secondary mb-4 gap-2 text-sm lg:hidden"
+            >
+              <Filter size={16} />
+              {sidebarOpen ? "Hide Filters" : "Show Filters"}
+            </button>
+
+            <div className="space-y-4">
+              {filteredJobs.length === 0 ? (
+                <div className="card text-center text-[var(--muted-foreground)]">
+                  No jobs match your filters.
+                </div>
+              ) : (
+                filteredJobs.map((job) => {
+                  const matchScore = matchScores.get(job.id);
+
+                  return (
+                    <article key={job.id} className="card-interactive">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700">
+                          <Building2 size={24} className="text-[var(--muted-foreground)]" />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div>
+                              <Link href={`/jobs/${job.id}`}>
+                                <h2 className="font-display text-lg font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400">
+                                  {job.clean_title ?? job.title ?? "Untitled Job"}
+                                </h2>
+                              </Link>
+                              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                                {job.company_name}
+                              </p>
+                            </div>
+                            {matchScore != null ? (
+                              <span className="badge-match">{matchScore}% Match</span>
+                            ) : null}
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--muted-foreground)]">
+                            <span className="flex items-center gap-1">
+                              <MapPin size={12} />
+                              {job.location ?? "Not specified"}
+                            </span>
+                            {job.salary_max ? (
+                              <span>Up to ${(job.salary_max / 1000).toFixed(0)}k</span>
+                            ) : null}
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {job.job_type ? <span className="badge-blue">{job.job_type}</span> : null}
+                            {job.work_mode ? (
+                              <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700 dark:bg-purple-950/50 dark:text-purple-300">
+                                {job.work_mode}
+                              </span>
+                            ) : null}
+                            {job.category ? (
+                              <span className="rounded-full bg-slate-200 px-3 py-1 text-xs dark:bg-slate-800">
+                                {job.category}
+                              </span>
+                            ) : null}
+                          </div>
+
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {job.apply_link ? (
+                              <a href={job.apply_link} target="_blank" rel="noopener noreferrer" className="btn-primary gap-2 text-sm">
+                                <ExternalLink size={14} />
+                                Apply
+                              </a>
+                            ) : (
+                              <Link href={`/jobs/${job.id}`} className="btn-primary gap-2 text-sm">
+                                View Details
+                              </Link>
+                            )}
+                            <button type="button" onClick={() => saveJob(job.id)} className="btn-secondary gap-2 text-sm">
+                              <Bookmark size={14} />
+                              Save
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })
+              )}
+            </div>
+          </div>
         </div>
       </section>
     </main>

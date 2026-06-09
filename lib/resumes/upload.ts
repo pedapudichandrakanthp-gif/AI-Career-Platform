@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { dispatchResumeUpdated } from "@/lib/events/resume";
+import { fileToBase64 } from "@/lib/resumes/fileUtils";
 import type { ExtractedProfile } from "@/types/ai";
 import type { ResumeRow } from "@/types/database";
 
@@ -8,7 +10,6 @@ export interface UploadResumeOptions {
   readonly userId: string;
   readonly accessToken: string;
   readonly replaceExisting?: boolean;
-  readonly isFirstUpload?: boolean;
 }
 
 export interface UploadResumeResult {
@@ -16,8 +17,6 @@ export interface UploadResumeResult {
   readonly extractedProfile: ExtractedProfile | null;
   readonly isFirstUpload: boolean;
 }
-
-import { fileToBase64 } from "@/lib/resumes/fileUtils";
 
 export async function uploadAndProcessResume(
   supabase: SupabaseClient,
@@ -38,49 +37,38 @@ export async function uploadAndProcessResume(
   }
 
   const fileName = `${userId}/${Date.now()}-${file.name}`;
+  const base64 = await fileToBase64(file);
+  const mimeType = file.type || "application/pdf";
 
   const { error: uploadError } = await supabase.storage.from("resumes").upload(fileName, file, {
     upsert: true,
   });
 
-  if (uploadError) {
-    throw new Error(uploadError.message);
-  }
+  if (uploadError) throw new Error(uploadError.message);
 
   const { data: publicUrlData } = supabase.storage.from("resumes").getPublicUrl(fileName);
 
   let extractedProfile: ExtractedProfile | null = null;
-  let extractedText = "";
+  const extractedText = "";
   let extractedSkills: string[] = [];
   let extractedEducation = "";
   let extractedExperience = "";
 
-  try {
-    const base64 = await fileToBase64(file);
-    const mimeType = file.type || "application/pdf";
+  const extractResponse = await fetch("/api/ai/extract-profile", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ pdfBase64: base64, mimeType }),
+  });
 
-    const extractResponse = await fetch("/api/ai/extract-profile", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({ pdfBase64: base64, mimeType }),
-    });
-
-    if (extractResponse.ok) {
-      const data = (await extractResponse.json()) as {
-        profile: ExtractedProfile;
-        extracted_text?: string;
-      };
-      extractedProfile = data.profile;
-      extractedText = data.extracted_text ?? "";
-      extractedSkills = [...(data.profile.skills ?? [])];
-      extractedEducation = data.profile.education ?? "";
-      extractedExperience = data.profile.experience ?? "";
-    }
-  } catch {
-    // AI extraction is best-effort; resume upload still succeeds
+  if (extractResponse.ok) {
+    const data = (await extractResponse.json()) as { profile: ExtractedProfile };
+    extractedProfile = data.profile;
+    extractedSkills = [...(data.profile.skills ?? [])];
+    extractedEducation = data.profile.education ?? "";
+    extractedExperience = data.profile.experience ?? "";
   }
 
   const { data: resume, error: dbError } = await supabase
@@ -99,9 +87,24 @@ export async function uploadAndProcessResume(
     .select("*")
     .single();
 
-  if (dbError) {
-    throw new Error(dbError.message);
-  }
+  if (dbError) throw new Error(dbError.message);
+
+  // Auto-update profile, analyze resume, regenerate matches
+  await fetch("/api/resume/process-complete", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      resumeId: resume.id,
+      pdfBase64: base64,
+      mimeType,
+      extractedProfile,
+    }),
+  });
+
+  dispatchResumeUpdated();
 
   return {
     resume: resume as ResumeRow,
@@ -113,9 +116,7 @@ export async function uploadAndProcessResume(
 export async function refreshUserDataAfterResumeUpdate(accessToken: string): Promise<void> {
   await fetch("/api/match-scores/generate", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
 }
 
@@ -124,9 +125,7 @@ export async function getAccessToken(supabase: SupabaseClient): Promise<string> 
     data: { session },
   } = await supabase.auth.getSession();
 
-  if (!session?.access_token) {
-    throw new Error("Not authenticated.");
-  }
+  if (!session?.access_token) throw new Error("Not authenticated.");
 
   return session.access_token;
 }

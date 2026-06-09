@@ -29,7 +29,7 @@ export default function ThemeToggle() {
         id="theme-select"
         value={theme}
         onChange={(e) => setTheme(e.target.value)}
-        className="input w-auto min-w-[7.5rem] cursor-pointer py-2 text-sm"
+        className="input w-auto min-w-[7.5rem] cursor-pointer border-[var(--border)] bg-[var(--surface-elevated)] py-2 text-sm"
         aria-label="Select theme"
       >
         <option value="light">Light</option>
