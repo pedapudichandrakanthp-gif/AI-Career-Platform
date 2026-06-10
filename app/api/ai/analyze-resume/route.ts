@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { generateJsonFromPdf, generateJsonFromText } from "@/lib/ai/gemini";
+import { generateJsonFromPdf, generateJsonFromText } from "@/lib/ai/groq";
 import { ANALYZE_RESUME_PROMPT } from "@/lib/ai/prompts";
+import { aiErrorResponse } from "@/lib/ai/route-handler";
 import { getAuthenticatedUser } from "@/lib/api/auth";
 import type { ResumeAnalysis } from "@/types/ai";
+
+export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   const auth = await getAuthenticatedUser(request);
@@ -24,11 +27,10 @@ export async function POST(request: NextRequest) {
     let analysis: ResumeAnalysis;
 
     if (body.pdfBase64) {
-      analysis = await generateJsonFromPdf<ResumeAnalysis>(
-        ANALYZE_RESUME_PROMPT,
-        body.pdfBase64,
-        body.mimeType ?? "application/pdf",
-      );
+       analysis = await generateJsonFromPdf<ResumeAnalysis>(
+       ANALYZE_RESUME_PROMPT,
+       body.pdfBase64
+        );
     } else if (body.resumeText) {
       analysis = await generateJsonFromText<ResumeAnalysis>(ANALYZE_RESUME_PROMPT, body.resumeText);
     } else {
@@ -62,7 +64,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ analysis: result });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to analyze resume.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return aiErrorResponse("analyze-resume", error);
   }
 }

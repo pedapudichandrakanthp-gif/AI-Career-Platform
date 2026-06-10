@@ -65,7 +65,7 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} AvsarGrid. All rights reserved.
           </p>
           <p className="text-xs text-[var(--muted-foreground)]">
-            Powered by Gemini AI &middot; Built for modern job seekers
+            Powered by Groq AI &middot; Built for modern job seekers
           </p>
         </div>
       </div>

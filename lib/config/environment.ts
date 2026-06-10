@@ -5,7 +5,7 @@ export const environmentVariableDescriptions = {
     "Supabase anonymous key used by browser clients. This value is public and must rely on Row Level Security.",
   SUPABASE_SERVICE_ROLE_KEY:
     "Supabase service role key used only by trusted server code for privileged operations.",
-  OPENAI_API_KEY: "OpenAI API key used only by trusted server code for AI processing."
+  GROQ_API_KEY: "Groq API key used only by trusted server code for AI processing.",
 } as const;
 
 export type EnvironmentVariableName = keyof typeof environmentVariableDescriptions;
@@ -16,7 +16,7 @@ export interface EnvironmentConfig {
     readonly anonKey: string;
     readonly serviceRoleKey: string;
   };
-  readonly openai: {
+  readonly groq: {
     readonly apiKey: string;
   };
 }
@@ -43,8 +43,8 @@ export class EnvironmentConfigurationError extends Error {
   public constructor(missingVariables: readonly EnvironmentVariableName[]) {
     super(
       `Missing required environment variables: ${missingVariables.join(
-        ", "
-      )}. Configure them from .env.example before using dependent services.`
+        ", ",
+      )}. Configure them in .env.local before using dependent services.`,
     );
     this.name = "EnvironmentConfigurationError";
     this.missingVariables = [...missingVariables];
@@ -52,7 +52,7 @@ export class EnvironmentConfigurationError extends Error {
 }
 
 const requiredEnvironmentVariables = Object.keys(
-  environmentVariableDescriptions
+  environmentVariableDescriptions,
 ) as EnvironmentVariableName[];
 
 function readEnvironmentVariable(variableName: EnvironmentVariableName): string | undefined {
@@ -62,13 +62,13 @@ function readEnvironmentVariable(variableName: EnvironmentVariableName): string 
 }
 
 function getMissingEnvironmentVariables(
-  variableNames: readonly EnvironmentVariableName[]
+  variableNames: readonly EnvironmentVariableName[],
 ): EnvironmentVariableName[] {
   return variableNames.filter((variableName) => !readEnvironmentVariable(variableName));
 }
 
 export function validateEnvironment(
-  variableNames: readonly EnvironmentVariableName[] = requiredEnvironmentVariables
+  variableNames: readonly EnvironmentVariableName[] = requiredEnvironmentVariables,
 ): EnvironmentValidationResult {
   const missingVariables = getMissingEnvironmentVariables(variableNames);
 
@@ -76,25 +76,42 @@ export function validateEnvironment(
     return {
       status: "invalid",
       missingVariables,
-      message: `Missing required environment variables: ${missingVariables.join(", ")}.`
+      message: `Missing required environment variables: ${missingVariables.join(", ")}.`,
     };
   }
 
   return {
     status: "valid",
     missingVariables: [],
-    message: "All required environment variables are configured."
+    message: "All required environment variables are configured.",
   };
 }
 
 export function assertEnvironmentIsConfigured(
-  variableNames: readonly EnvironmentVariableName[] = requiredEnvironmentVariables
+  variableNames: readonly EnvironmentVariableName[] = requiredEnvironmentVariables,
 ): void {
   const validationResult = validateEnvironment(variableNames);
 
   if (validationResult.status === "invalid") {
     throw new EnvironmentConfigurationError(validationResult.missingVariables);
   }
+}
+
+export function validateStartupEnvironment(): void {
+  const result = validateEnvironment();
+
+  if (result.status === "invalid") {
+    for (const variable of result.missingVariables) {
+      console.error(
+        `[AvsarGrid] Missing required environment variable: ${variable} — ${environmentVariableDescriptions[variable]}`,
+      );
+    }
+
+    console.error("[AvsarGrid] Server startup environment validation failed.");
+    return;
+  }
+
+  console.info("[AvsarGrid] Environment validation passed.");
 }
 
 export function getEnvironmentConfig(): EnvironmentConfig {
@@ -104,11 +121,11 @@ export function getEnvironmentConfig(): EnvironmentConfig {
     supabase: {
       url: readRequiredEnvironmentVariable("NEXT_PUBLIC_SUPABASE_URL"),
       anonKey: readRequiredEnvironmentVariable("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-      serviceRoleKey: readRequiredEnvironmentVariable("SUPABASE_SERVICE_ROLE_KEY")
+      serviceRoleKey: readRequiredEnvironmentVariable("SUPABASE_SERVICE_ROLE_KEY"),
     },
-    openai: {
-      apiKey: readRequiredEnvironmentVariable("OPENAI_API_KEY")
-    }
+    groq: {
+      apiKey: readRequiredEnvironmentVariable("GROQ_API_KEY"),
+    },
   };
 }
 

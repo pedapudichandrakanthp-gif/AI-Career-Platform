@@ -132,7 +132,7 @@ export default function AdminImportJobsPage() {
       <section className="page-container max-w-3xl">
         <h1 className="page-title">Import Job with AI</h1>
         <p className="mt-2 text-base text-slate-600 dark:text-slate-400">
-          Paste a job URL or description and let Gemini extract structured job data.
+          Paste a job URL or description and let AI extract structured job data.
         </p>
 
         {errorMessage ? <div className="alert-error mt-6">{errorMessage}</div> : null}

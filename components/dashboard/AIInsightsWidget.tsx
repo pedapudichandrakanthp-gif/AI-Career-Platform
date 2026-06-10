@@ -22,7 +22,7 @@ export default function AIInsightsWidget({ resumeAnalysis }: AIInsightsWidgetPro
         </div>
         <div>
           <h2 className="font-display text-lg font-semibold">AI Career Insights</h2>
-          <p className="text-xs text-[var(--muted-foreground)]">Powered by Gemini</p>
+          <p className="text-xs text-[var(--muted-foreground)]">Powered by AI</p>
         </div>
       </div>
 

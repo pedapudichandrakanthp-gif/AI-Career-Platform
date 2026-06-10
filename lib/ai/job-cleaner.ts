@@ -1,8 +1,8 @@
-import { generateJsonFromText } from "@/lib/ai/gemini";
+import { generateJsonFromText } from "@/lib/ai/groq";
 import { CLEAN_JOB_PROMPT } from "@/lib/ai/prompts";
 import type { CleanedJobData } from "@/types/ai";
 
-export async function cleanJobWithGemini(rawContent: string): Promise<CleanedJobData> {
+export async function cleanJobWithAI(rawContent: string): Promise<CleanedJobData> {
   const cleaned = await generateJsonFromText<CleanedJobData>(CLEAN_JOB_PROMPT, rawContent);
 
   return {

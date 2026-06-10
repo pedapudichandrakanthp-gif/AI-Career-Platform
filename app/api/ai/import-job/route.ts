@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { generateJsonFromText } from "@/lib/ai/gemini";
+import { generateJsonFromText } from "@/lib/ai/groq";
 import { IMPORT_JOB_PROMPT } from "@/lib/ai/prompts";
+import { aiErrorResponse } from "@/lib/ai/route-handler";
 import { getAuthenticatedUser } from "@/lib/api/auth";
 import type { ImportedJobData } from "@/types/ai";
+
+export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   const auth = await getAuthenticatedUser(request);
@@ -41,7 +44,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to import job.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return aiErrorResponse("import-job", error);
   }
 }

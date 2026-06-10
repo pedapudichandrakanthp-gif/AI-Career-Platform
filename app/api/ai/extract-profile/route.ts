@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { generateJsonFromPdf } from "@/lib/ai/gemini";
+import { extractPdfText, generateJsonFromPdf } from "@/lib/ai/groq";
 import { EXTRACT_PROFILE_PROMPT } from "@/lib/ai/prompts";
+import { aiErrorResponse } from "@/lib/ai/route-handler";
 import { getAuthenticatedUser } from "@/lib/api/auth";
 import type { ExtractedProfile } from "@/types/ai";
+
+export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   const auth = await getAuthenticatedUser(request);
@@ -19,11 +22,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "pdfBase64 is required." }, { status: 400 });
     }
 
-    const profile = await generateJsonFromPdf<ExtractedProfile>(
-      EXTRACT_PROFILE_PROMPT,
-      body.pdfBase64,
-      body.mimeType ?? "application/pdf",
-    );
+    const [profile, resumeText] = await Promise.all([
+      generateJsonFromPdf<ExtractedProfile>(
+        EXTRACT_PROFILE_PROMPT,
+        body.pdfBase64,
+      ),
+      extractPdfText(body.pdfBase64),
+    ]);
 
     return NextResponse.json({
       profile: {
@@ -39,9 +44,9 @@ export async function POST(request: NextRequest) {
         certifications: profile.certifications ?? [],
         projects: profile.projects ?? "",
       },
+      resumeText,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to extract profile.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return aiErrorResponse("extract-profile", error);
   }
 }

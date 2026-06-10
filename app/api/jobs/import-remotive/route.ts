@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { aiErrorResponse } from "@/lib/ai/route-handler";
 import { isAdmin } from "@/lib/auth/admin";
 import { getAuthenticatedUser } from "@/lib/api/auth";
 import { importRemotiveJobs } from "@/lib/jobs/import-remotive";
@@ -24,7 +25,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Import failed.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return aiErrorResponse("import-remotive", error);
   }
 }

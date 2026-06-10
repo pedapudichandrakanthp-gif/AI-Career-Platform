@@ -20,7 +20,7 @@ const features = [
     icon: FileUp,
     title: "AI Resume Analysis",
     description:
-      "Upload your resume and get instant ATS scoring, skill extraction, and actionable improvement tips powered by Gemini.",
+      "Upload your resume and get instant ATS scoring, skill extraction, and actionable improvement tips powered by AI.",
     gradient: "from-blue-500 to-cyan-500",
   },
   {
@@ -173,7 +173,7 @@ export default function Home() {
             Everything You Need to Win
           </h2>
           <p className="mt-4 text-lg text-[var(--muted-foreground)]">
-            Professional-grade career tools powered by Gemini AI — built for ambitious job seekers.
+            Professional-grade career tools powered by Groq AI — built for ambitious job seekers.
           </p>
         </div>
 

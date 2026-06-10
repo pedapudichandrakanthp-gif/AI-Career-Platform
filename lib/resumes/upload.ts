@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { toAiUserMessage } from "@/lib/ai/errors";
+import { buildResumeExtractedFields } from "@/lib/ai/resume-fields";
 import { dispatchResumeUpdated } from "@/lib/events/resume";
 import { fileToBase64 } from "@/lib/resumes/fileUtils";
 import type { ExtractedProfile } from "@/types/ai";
@@ -49,10 +51,7 @@ export async function uploadAndProcessResume(
   const { data: publicUrlData } = supabase.storage.from("resumes").getPublicUrl(fileName);
 
   let extractedProfile: ExtractedProfile | null = null;
-  const extractedText = "";
-  let extractedSkills: string[] = [];
-  let extractedEducation = "";
-  let extractedExperience = "";
+  let resumeText = "";
 
   const extractResponse = await fetch("/api/ai/extract-profile", {
     method: "POST",
@@ -63,13 +62,19 @@ export async function uploadAndProcessResume(
     body: JSON.stringify({ pdfBase64: base64, mimeType }),
   });
 
-  if (extractResponse.ok) {
-    const data = (await extractResponse.json()) as { profile: ExtractedProfile };
-    extractedProfile = data.profile;
-    extractedSkills = [...(data.profile.skills ?? [])];
-    extractedEducation = data.profile.education ?? "";
-    extractedExperience = data.profile.experience ?? "";
+  if (!extractResponse.ok) {
+    throw new Error(toAiUserMessage());
   }
+
+  const extractData = (await extractResponse.json()) as {
+    profile: ExtractedProfile;
+    resumeText?: string;
+  };
+
+  extractedProfile = extractData.profile;
+  resumeText = extractData.resumeText ?? "";
+
+  const extractedFields = buildResumeExtractedFields(extractedProfile, resumeText);
 
   const { data: resume, error: dbError } = await supabase
     .from("resumes")
@@ -78,10 +83,10 @@ export async function uploadAndProcessResume(
         user_id: userId,
         file_name: file.name,
         file_url: publicUrlData.publicUrl,
-        extracted_text: extractedText || null,
-        extracted_skills: extractedSkills.length > 0 ? extractedSkills : null,
-        extracted_education: extractedEducation || null,
-        extracted_experience: extractedExperience || null,
+        extracted_text: extractedFields.extracted_text,
+        extracted_skills: extractedFields.extracted_skills,
+        extracted_education: extractedFields.extracted_education,
+        extracted_experience: extractedFields.extracted_experience,
       },
     ])
     .select("*")
@@ -89,8 +94,7 @@ export async function uploadAndProcessResume(
 
   if (dbError) throw new Error(dbError.message);
 
-  // Auto-update profile, analyze resume, regenerate matches
-  await fetch("/api/resume/process-complete", {
+  const processResponse = await fetch("/api/resume/process-complete", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -101,8 +105,13 @@ export async function uploadAndProcessResume(
       pdfBase64: base64,
       mimeType,
       extractedProfile,
+      resumeText,
     }),
   });
+
+  if (!processResponse.ok) {
+    throw new Error(toAiUserMessage());
+  }
 
   dispatchResumeUpdated();
 

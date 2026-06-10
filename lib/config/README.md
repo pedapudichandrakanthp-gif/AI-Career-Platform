@@ -7,7 +7,7 @@ Required variables:
 - `NEXT_PUBLIC_SUPABASE_URL`: Public Supabase project URL used by browser and server clients.
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Public Supabase anonymous key used by browser clients with Row Level Security.
 - `SUPABASE_SERVICE_ROLE_KEY`: Server-only Supabase service role key for privileged backend operations.
-- `OPENAI_API_KEY`: Server-only OpenAI API key for AI resume analysis, job analysis, and matching services.
+- `GROQ_API_KEY`: Server-only Groq API key for AI resume analysis, job analysis, and career features.
 
 Rules:
 

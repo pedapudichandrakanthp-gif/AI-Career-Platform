@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { cleanJobWithGemini, buildRawJobContent } from "@/lib/ai/job-cleaner";
+import { cleanJobWithAI, buildRawJobContent } from "@/lib/ai/job-cleaner";
 import { isDuplicateByExternalId, isDuplicateJob } from "@/lib/jobs/duplicate";
 import type { RemotiveJob } from "@/types/ai";
 
@@ -61,7 +61,7 @@ export async function importRemotiveJobs(supabase: SupabaseClient): Promise<Impo
         },
       ]);
 
-      const cleaned = await cleanJobWithGemini(buildRawJobContent(rawJob as unknown as Record<string, unknown>));
+      const cleaned = await cleanJobWithAI(buildRawJobContent(rawJob as unknown as Record<string, unknown>));
 
       if (
         await isDuplicateJob(

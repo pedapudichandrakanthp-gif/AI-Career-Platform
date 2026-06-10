@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { generateJsonFromPdf } from "@/lib/ai/gemini";
+import { generateJsonFromPdf, generateJsonFromText } from "@/lib/ai/groq";
 import { ANALYZE_RESUME_PROMPT } from "@/lib/ai/prompts";
+import { aiErrorResponse } from "@/lib/ai/route-handler";
+import { buildResumeExtractedFields } from "@/lib/ai/resume-fields";
 import { getAuthenticatedUser } from "@/lib/api/auth";
 import { generateAndStoreMatchScoresForUser } from "@/lib/matching/matchScores";
 import { autoUpdateProfileFromResume } from "@/lib/profile/auto-update";
 import type { ExtractedProfile, ResumeAnalysis } from "@/types/ai";
+
+export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   const auth = await getAuthenticatedUser(request);
@@ -20,18 +24,51 @@ export async function POST(request: NextRequest) {
       pdfBase64?: string;
       mimeType?: string;
       extractedProfile?: ExtractedProfile | null;
+      resumeText?: string;
     };
 
     if (body.extractedProfile) {
       await autoUpdateProfileFromResume(auth.supabase, auth.user.id, body.extractedProfile);
     }
 
-    if (body.pdfBase64 && body.resumeId) {
-      const analysis = await generateJsonFromPdf<ResumeAnalysis>(
-        ANALYZE_RESUME_PROMPT,
-        body.pdfBase64,
-        body.mimeType ?? "application/pdf",
+    if (body.resumeId && body.extractedProfile) {
+      const extractedFields = buildResumeExtractedFields(
+        body.extractedProfile,
+        body.resumeText,
       );
+
+      await auth.supabase.from("resumes").update(extractedFields).eq("id", body.resumeId);
+    }
+
+    if (body.resumeId) {
+      let analysis: ResumeAnalysis;
+
+      if (body.pdfBase64) {
+        analysis = await generateJsonFromPdf<ResumeAnalysis>(
+          ANALYZE_RESUME_PROMPT,
+          body.pdfBase64,
+        );
+      } else if (body.resumeText) {
+        analysis = await generateJsonFromText<ResumeAnalysis>(
+          ANALYZE_RESUME_PROMPT,
+          body.resumeText,
+        );
+      } else {
+        const { data: resumeRow } = await auth.supabase
+          .from("resumes")
+          .select("extracted_text")
+          .eq("id", body.resumeId)
+          .maybeSingle();
+
+        if (!resumeRow?.extracted_text) {
+          throw new Error("Resume content not available for analysis.");
+        }
+
+        analysis = await generateJsonFromText<ResumeAnalysis>(
+          ANALYZE_RESUME_PROMPT,
+          resumeRow.extracted_text,
+        );
+      }
 
       await auth.supabase.from("resume_analysis").delete().eq("user_id", auth.user.id);
 
@@ -57,7 +94,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Processing failed.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return aiErrorResponse("process-complete", error);
   }
 }
