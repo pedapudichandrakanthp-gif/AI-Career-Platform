@@ -15,6 +15,8 @@ import {
   Zap,
 } from "lucide-react";
 
+import { createServiceClient } from "@/lib/supabase/server";
+
 const features = [
   {
     icon: FileUp,
@@ -64,12 +66,21 @@ const steps = [
   },
 ] as const;
 
-const stats = [
-  { value: "10K+", label: "Jobs Indexed" },
-  { value: "95%", label: "Match Accuracy" },
-  { value: "3x", label: "Faster Search" },
-  { value: "24/7", label: "AI Analysis" },
-] as const;
+async function getStats() {
+  const supabase = createServiceClient();
+
+  const [jobsCount, usersCount] = await Promise.all([
+    supabase.from("jobs").select("id", { count: "exact", head: true }).eq("is_active", true),
+    supabase.from("users").select("id", { count: "exact", head: true }),
+  ]);
+
+  return [
+    { value: `${jobsCount.count ?? 0}+`, label: "Jobs Indexed" },
+    { value: "AI-Powered", label: "Match Accuracy" },
+    { value: "Instant", label: "Search Speed" },
+    { value: `${usersCount.count ?? 0}+`, label: "Users" },
+  ];
+}
 
 const testimonials = [
   {
@@ -95,9 +106,11 @@ const testimonials = [
   },
 ] as const;
 
-export default function Home() {
+export default async function Home() {
+  const stats = await getStats();
+
   return (
-    <main className="bg-[var(--background)]">
+    <main role="main" className="bg-[var(--background)]">
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="hero-gradient absolute inset-0 opacity-[0.07] dark:opacity-[0.12]" aria-hidden="true" />

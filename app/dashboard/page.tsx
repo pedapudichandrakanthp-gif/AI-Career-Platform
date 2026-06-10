@@ -255,7 +255,7 @@ export default function DashboardPage() {
 
   return (
     <ProtectedRoute>
-      <main className="page-main">
+      <main role="main" className="page-main">
         <input
           ref={fileInputRef}
           type="file"

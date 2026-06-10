@@ -26,6 +26,17 @@ export async function uploadAndProcessResume(
 ): Promise<UploadResumeResult> {
   const { file, userId, accessToken, replaceExisting = false } = options;
 
+  // Validate file type (PDF only)
+  if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+    throw new Error("Only PDF files are allowed.");
+  }
+
+  // Validate file size (max 5 MB)
+  const maxSize = 5 * 1024 * 1024; // 5 MB in bytes
+  if (file.size > maxSize) {
+    throw new Error("File size exceeds 5 MB limit.");
+  }
+
   const { data: priorResumes } = await supabase
     .from("resumes")
     .select("id")

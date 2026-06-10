@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Bookmark, Building2, ExternalLink, Filter, MapPin, Search, SlidersHorizontal } from "lucide-react";
+import { Bookmark, Briefcase, Building2, ExternalLink, Filter, MapPin, Search, SlidersHorizontal } from "lucide-react";
 
 import { supabase } from "@/lib/supabase";
 import type { JobFilters, JobRow, MatchScoreRow } from "@/types/database";
@@ -169,7 +169,7 @@ export default function JobsPage() {
     keyword || locationFilter || categoryFilter || jobTypeFilter || experienceFilter || salaryMin || workModeFilter;
 
   return (
-    <main className="page-main">
+    <main role="main" className="page-main">
       <section className="page-container">
         {/* Header + Search */}
         <div className="text-center sm:text-left">
@@ -289,8 +289,32 @@ export default function JobsPage() {
 
             <div className="space-y-4">
               {filteredJobs.length === 0 ? (
-                <div className="card text-center text-[var(--muted-foreground)]">
-                  No jobs match your filters.
+                <div className="card text-center py-12">
+                  {hasActiveFilters ? (
+                    <>
+                      <Briefcase size={48} className="mx-auto mb-4 text-[var(--muted-foreground)]" />
+                      <h3 className="text-lg font-semibold">No jobs match your filters</h3>
+                      <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+                        Try adjusting your search criteria or reset filters to see all available jobs.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="btn-secondary mt-6 gap-2"
+                      >
+                        <Filter size={16} />
+                        Reset Filters
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Briefcase size={48} className="mx-auto mb-4 text-[var(--muted-foreground)]" />
+                      <h3 className="text-lg font-semibold">No jobs available</h3>
+                      <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+                        Check back later for new opportunities or try different search terms.
+                      </p>
+                    </>
+                  )}
                 </div>
               ) : (
                 filteredJobs.map((job) => {
