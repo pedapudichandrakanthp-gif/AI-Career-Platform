@@ -1,10 +1,10 @@
 interface JobLogoProps {
-  company: string
+  company_name: string
   size?: number
 }
 
-export default function JobLogo({ company, size = 40 }: JobLogoProps) {
-  const initial = company?.charAt(0)?.toUpperCase() || '?'
+export default function JobLogo({ company_name, size = 40 }: JobLogoProps) {
+  const initial = company_name?.charAt(0)?.toUpperCase() || '?'
 
   return (
     <div style={{ width: size, height: size }}

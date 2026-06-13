@@ -17,27 +17,25 @@ export default function JobsPage() {
   const [jobTypeFilter, setJobTypeFilter] = useState("");
   const [experienceFilter, setExperienceFilter] = useState("");
   const [salaryMin, setSalaryMin] = useState("");
-  const [workModeFilter, setWorkModeFilter] = useState("");
   const [saveSearchName, setSaveSearchName] = useState("");
   const [message, setMessage] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const fetchJobs = useCallback(async () => {
-    const now = new Date().toISOString();
+    const { data: jobs, error } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
 
-    const { data, error } = await supabase
-      .from("jobs")
-      .select("*")
-      .eq("is_active", true)
-      .or(`expires_at.is.null,expires_at.gt.${now}`)
-      .order("created_at", { ascending: false });
+    console.log('Jobs fetched:', jobs?.length, 'Error:', error?.message)
 
     if (error) {
       console.error(error);
       return;
     }
 
-    setJobs((data ?? []) as JobRow[]);
+    setJobs((jobs ?? []) as JobRow[]);
 
     const {
       data: { user },
@@ -63,7 +61,6 @@ export default function JobsPage() {
   const locations = useMemo(() => [...new Set(jobs.map((j) => j.location).filter(Boolean))].sort(), [jobs]);
   const categories = useMemo(() => [...new Set(jobs.map((j) => j.category).filter(Boolean))].sort(), [jobs]);
   const jobTypes = useMemo(() => [...new Set(jobs.map((j) => j.job_type).filter(Boolean))].sort(), [jobs]);
-  const workModes = useMemo(() => [...new Set(jobs.map((j) => j.work_mode).filter(Boolean))].sort(), [jobs]);
 
   const filteredJobs = useMemo(() => {
     const searchTerm = keyword.trim().toLowerCase();
@@ -79,7 +76,6 @@ export default function JobsPage() {
       const matchesLocation = !locationFilter || job.location === locationFilter;
       const matchesCategory = !categoryFilter || job.category === categoryFilter;
       const matchesJobType = !jobTypeFilter || job.job_type === jobTypeFilter;
-      const matchesWorkMode = !workModeFilter || job.work_mode === workModeFilter;
 
       const matchesExperience =
         !experienceFilter ||
@@ -96,12 +92,11 @@ export default function JobsPage() {
         matchesLocation &&
         matchesCategory &&
         matchesJobType &&
-        matchesWorkMode &&
         matchesExperience &&
         matchesSalary
       );
     });
-  }, [jobs, keyword, locationFilter, categoryFilter, jobTypeFilter, experienceFilter, salaryMin, workModeFilter]);
+  }, [jobs, keyword, locationFilter, categoryFilter, jobTypeFilter, experienceFilter, salaryMin]);
 
   const saveSearch = async () => {
     const {
@@ -125,7 +120,6 @@ export default function JobsPage() {
       jobType: jobTypeFilter,
       experience: experienceFilter,
       salaryMin: salaryMin ? Number(salaryMin) : undefined,
-      workMode: workModeFilter,
     };
 
     const { error } = await supabase.from("saved_searches").insert([
@@ -161,11 +155,10 @@ export default function JobsPage() {
     setJobTypeFilter("");
     setExperienceFilter("");
     setSalaryMin("");
-    setWorkModeFilter("");
   };
 
   const hasActiveFilters =
-    keyword || locationFilter || categoryFilter || jobTypeFilter || experienceFilter || salaryMin || workModeFilter;
+    keyword || locationFilter || categoryFilter || jobTypeFilter || experienceFilter || salaryMin;
 
   return (
     <main role="main" className="page-main">
@@ -233,19 +226,6 @@ export default function JobsPage() {
                   <select id="job-type-filter" className="input text-sm" value={jobTypeFilter} onChange={(e) => setJobTypeFilter(e.target.value)}>
                     <option value="">All Types</option>
                     {jobTypes.map((t) => <option key={t} value={t!}>{t}</option>)}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="label" htmlFor="work-mode-filter">Work Mode</label>
-                  <select id="work-mode-filter" className="input text-sm" value={workModeFilter} onChange={(e) => setWorkModeFilter(e.target.value)}>
-                    <option value="">All</option>
-                    <option value="Remote">Remote</option>
-                    <option value="Hybrid">Hybrid</option>
-                    <option value="Onsite">Onsite</option>
-                    {workModes.filter((m) => !["Remote", "Hybrid", "Onsite"].includes(m!)).map((m) => (
-                      <option key={m} value={m!}>{m}</option>
-                    ))}
                   </select>
                 </div>
 

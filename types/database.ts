@@ -18,28 +18,23 @@ export interface UserProfileRow {
 }
 
 export interface JobRow {
-  readonly id: string;
-  readonly title: string | null;
-  readonly company_name: string | null;
-  readonly job_type: string | null;
-  readonly category: string | null;
-  readonly location: string | null;
-  readonly salary_min: number | null;
-  readonly salary_max: number | null;
-  readonly qualification: string | null;
-  readonly experience_required: number | null;
-  readonly skills: string[] | null;
-  readonly description: string | null;
-  readonly apply_link: string | null;
-  readonly application_deadline: string | null;
-  readonly is_active: boolean | null;
-  readonly source: string | null;
-  readonly expires_at: string | null;
-  readonly work_mode: string | null;
-  readonly clean_title: string | null;
-  readonly external_id: string | null;
-  readonly created_at: string | null;
-  readonly updated_at: string | null;
+  id: string
+  title: string
+  company_name: string
+  job_type: string | null
+  category: string | null
+  location: string | null
+  salary_min: number | null
+  salary_max: number | null
+  qualification: string | null
+  experience_required: number | null
+  skills: string[] | null
+  description: string | null
+  apply_link: string | null
+  application_deadline: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
 }
 
 export interface ResumeRow {
@@ -133,7 +128,6 @@ export interface JobFilters {
   readonly salaryMin?: number;
   readonly salaryMax?: number;
   readonly jobType?: string;
-  readonly workMode?: string;
   readonly category?: string;
 }
 

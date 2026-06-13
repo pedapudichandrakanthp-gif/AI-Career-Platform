@@ -1,7 +1,6 @@
+import { createClient } from '@supabase/supabase-js'
 import * as dotenv from 'dotenv'
 dotenv.config({ path: '.env.local' })
-
-import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,34 +8,88 @@ const supabase = createClient(
 )
 
 async function seed() {
-  const { count } = await supabase
+  console.log('Deleting existing seeded jobs...')
+  const { error: deleteError } = await supabase
     .from('jobs')
-    .select('*', { count: 'exact', head: true })
+    .delete()
+    .not('apply_link', 'is', null)
 
-  if (count && count > 0) {
-    console.log('Already seeded:', count, 'jobs. Skipping.')
+  if (deleteError) {
+    console.error('Failed to delete old jobs:', deleteError.message)
+  } else {
+    console.log('Successfully cleared old seeded jobs.')
+  }
+
+  console.log('Fetching from Remotive API...')
+  const res = await fetch('https://remotive.com/api/remote-jobs?limit=50')
+  
+  if (!res.ok) {
+    console.error('Remotive API failed:', res.status)
     return
   }
 
-  const res = await fetch('https://remotive.com/api/remote-jobs?limit=50')
-  const { jobs } = await res.json()
+  const data = await res.json()
+  const jobs = data.jobs || []
+  console.log('Fetched', jobs.length, 'jobs from Remotive')
 
-  const rows = jobs.map((j: any) => ({
-    title: j.title,
-    company: j.company_name,
-    location: j.candidate_required_location || 'Remote',
-    job_type: j.job_type || 'full_time',
-    work_mode: 'remote',
-    category: j.category || 'Engineering',
-    description: j.description?.replace(/<[^>]*>/g, '').slice(0, 1500) || '',
-    apply_url: j.url,
-    is_active: true,
-    created_at: j.publication_date || new Date().toISOString()
-  }))
+  const rows = jobs
+    .filter((j: any) => !!j.title) // Skip jobs without a title
+    .map((j: any) => ({
+      title: j.title || 'Untitled',
+      company_name: j.company_name || 'Unknown Company',
+      job_type: j.job_type || 'full_time',
+      category: j.category || 'Engineering',
+      location: j.candidate_required_location || 'Remote',
+      salary_min: null,
+      salary_max: null,
+      qualification: null,
+      experience_required: 0,
+      skills: [],
+      description: j.description
+        ?.replace(/<[^>]*>/g, '')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&nbsp;/g, ' ')
+        .slice(0, 2000) || '',
+      apply_link: j.url,
+      application_deadline: null,
+      is_active: true,
+      created_at: new Date().toISOString()
+    }))
 
-  const { error } = await supabase.from('jobs').insert(rows)
-  if (error) console.error('Seed error:', error)
-  else console.log('Seeded', rows.length, 'jobs successfully')
+  if (rows.length === 0) {
+    console.log('No valid jobs found to insert.')
+    return
+  }
+
+  console.log('Sample row:', JSON.stringify(rows[0], null, 2))
+
+  console.log('\nPreparing to insert the following jobs:')
+  rows.forEach((r: any, idx: number) => {
+    console.log(`[${idx + 1}] Title: ${r.title} | Link: ${r.apply_link}`)
+  })
+
+  console.log(`\nInserting ${rows.length} rows in batches of 10...`)
+  let totalInserted = 0
+  
+  for (let i = 0; i < rows.length; i += 10) {
+    const batch = rows.slice(i, i + 10)
+    const { error, data: inserted } = await supabase
+      .from('jobs')
+      .insert(batch)
+      .select('id')
+
+    if (error) {
+      console.error(`\nBatch ${Math.floor(i / 10) + 1} Insert error:`, error.message)
+      console.error('Details:', error.details)
+    } else {
+      totalInserted += inserted?.length || 0
+      console.log(`Batch ${Math.floor(i / 10) + 1}: Inserted ${inserted?.length} jobs`)
+    }
+  }
+
+  console.log(`\n✅ Successfully seeded a total of ${totalInserted} jobs!`)
 }
 
-seed()
+seed().catch(console.error)

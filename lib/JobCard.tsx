@@ -68,7 +68,7 @@ export default function JobCard({ job, userSkills, onSaveJob }: JobCardProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          jobTitle: job.clean_title ?? job.title ?? "this position",
+          jobTitle: job.title ?? "this position",
           company: job.company_name ?? "your company",
           jobDescription: job.description ?? "",
           userProfile: {
@@ -97,7 +97,7 @@ export default function JobCard({ job, userSkills, onSaveJob }: JobCardProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          jobTitle: job.clean_title ?? job.title ?? "this position",
+          jobTitle: job.title ?? "this position",
           jobDescription: job.description ?? "",
           userSkills: userSkills.join(", "),
         }),
@@ -127,7 +127,7 @@ export default function JobCard({ job, userSkills, onSaveJob }: JobCardProps) {
         user_id: user.id,
         job_id: job.id,
         company: job.company_name,
-        title: job.clean_title ?? job.title ?? "Untitled Job",
+        title: job.title ?? "Untitled Job",
         status: "applied"
       }]);
 
@@ -153,7 +153,7 @@ export default function JobCard({ job, userSkills, onSaveJob }: JobCardProps) {
             <div>
               <Link href={`/jobs/${job.id}`}>
                 <h2 className="font-display text-lg font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400">
-                  {job.clean_title ?? job.title ?? "Untitled Job"}
+              {job.title ?? "Untitled Job"}
                 </h2>
               </Link>
               <p className="mt-1 text-sm text-[var(--muted-foreground)]">{job.company_name}</p>
@@ -171,11 +171,6 @@ export default function JobCard({ job, userSkills, onSaveJob }: JobCardProps) {
 
           <div className="mt-3 flex flex-wrap gap-2">
             {job.job_type ? <span className="badge-blue">{job.job_type}</span> : null}
-            {job.work_mode ? (
-              <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700 dark:bg-purple-950/50 dark:text-purple-300">
-                {job.work_mode}
-              </span>
-            ) : null}
             {job.category ? (
               <span className="rounded-full bg-slate-200 px-3 py-1 text-xs dark:bg-slate-800">{job.category}</span>
             ) : null}

@@ -24,9 +24,6 @@ export default function JobCard({ job, onSave, onSaveJob, matchScore }: JobCardP
             {job.job_type && (
               <span className="text-xs bg-secondary px-2 py-1 rounded">{job.job_type}</span>
             )}
-            {job.work_mode && (
-              <span className="text-xs bg-secondary px-2 py-1 rounded">{job.work_mode}</span>
-            )}
           </div>
         </div>
         {matchScore !== null && matchScore !== undefined && (

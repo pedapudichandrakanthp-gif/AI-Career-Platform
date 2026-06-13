@@ -1,51 +1,106 @@
-import { NextResponse } from "next/server";
-import Groq from "groq-sdk";
+import { createClient } from '@supabase/supabase-js'
+import { NextResponse } from 'next/server'
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY!
 
-export async function POST(req: Request) {
+const INDIA_SEARCHES = [
+  'software engineer India',
+  'data scientist India',
+  'product manager India',
+  'UI designer India',
+  'DevOps India'
+]
+
+function mapJobType(type: string): string {
+  const t = type?.toLowerCase() || ''
+  if (t.includes('full')) return 'full_time'
+  if (t.includes('part')) return 'part_time'
+  if (t.includes('contract')) return 'contract'
+  if (t.includes('intern')) return 'internship'
+  return 'full_time'
+}
+
+function detectCategory(title: string, desc: string): string {
+  const text = (title + ' ' + desc).toLowerCase()
+  if (text.includes('react') || text.includes('frontend') || text.includes('javascript')) return 'Engineering'
+  if (text.includes('python') || text.includes('backend') || text.includes('java')) return 'Engineering'
+  if (text.includes('data') || text.includes('analyst') || text.includes('ml') || text.includes('scientist')) return 'Data Science'
+  if (text.includes('design') || text.includes('ui') || text.includes('ux')) return 'Design'
+  if (text.includes('product') || text.includes('manager')) return 'Product'
+  if (text.includes('devops') || text.includes('cloud') || text.includes('aws')) return 'DevOps'
+  if (text.includes('marketing') || text.includes('seo')) return 'Marketing'
+  if (text.includes('sales') || text.includes('business')) return 'Sales'
+  return 'Engineering'
+}
+
+export async function GET() {
   try {
-    const body = await req.json();
-    const { jobTitle, location, experienceYears, skills } = body;
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
 
-    if (!jobTitle || !location) {
-      return NextResponse.json(
-        { error: "Missing required fields: jobTitle and location are required." },
-        { status: 400 }
-      );
+    let totalUpserted = 0
+
+    for (const query of INDIA_SEARCHES) {
+      const url = `https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(query)}&page=1&num_pages=1&country=in&date_posted=3days`
+      
+      const res = await fetch(url, {
+        headers: {
+          'X-RapidAPI-Key': RAPIDAPI_KEY,
+          'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
+        }
+      })
+      
+      if (!res.ok) {
+        console.error(`JSearch error for "${query}":`, res.status)
+        continue
+      }
+      
+      const data = await res.json()
+      const jobs = data.data || []
+      
+      if (jobs.length === 0) continue
+
+      const rows = jobs.map((j: any) => ({
+        title: j.job_title || 'Untitled',
+        company_name: j.employer_name || 'Unknown',
+        location: j.job_city 
+          ? `${j.job_city}, ${j.job_country || 'India'}` 
+          : (j.job_country || 'India'),
+        job_type: mapJobType(j.job_employment_type),
+        category: detectCategory(j.job_title, j.job_description || ''),
+        description: j.job_description?.slice(0, 2000) || '',
+        apply_link: j.job_apply_link || j.job_google_link || null,
+        salary_min: j.job_min_salary ? Math.round(j.job_min_salary * 83) : null,
+        salary_max: j.job_max_salary ? Math.round(j.job_max_salary * 83) : null,
+        is_active: true,
+        created_at: new Date().toISOString()
+      })).filter((row: any) => !!row.apply_link) // Ensure we don't upsert NULL unique keys
+
+      if (rows.length === 0) continue
+
+      const { error } = await supabase
+        .from('jobs')
+        .upsert(rows, { onConflict: 'apply_link', ignoreDuplicates: true })
+
+      if (error) {
+        console.error(`Error inserting ${query}:`, error.message)
+      } else {
+        totalUpserted += rows.length
+      }
+      
+      // Wait 1 second between requests to respect RapidAPI free tier rate limits
+      await new Promise(r => setTimeout(r, 1000))
     }
 
-    const prompt = `Provide salary intelligence for ${jobTitle} with ${experienceYears || 0} years experience in ${location}.
-Skills: ${(skills || []).join(", ") || "Not specified"}.
-Return ONLY valid JSON:
-{
-  "min_salary": number,
-  "max_salary": number,
-  "median_salary": number,
-  "currency": "USD"|"INR"|"GBP",
-  "market_position": "below"|"competitive"|"above",
-  "insight": "one sentence explanation"
-}
-Base on current 2025-2026 market data. For India use INR. Return purely the JSON object, do not wrap in markdown blocks.`;
-
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [{ role: "user", content: prompt }],
-      model: "llama3-8b-8192",
-      max_tokens: 200,
-    });
-
-    const rawContent = chatCompletion.choices[0]?.message?.content || "{}";
-    
-    // Extract JSON robustly in case the LLM wraps it in formatting
-    const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
-    const cleanJson = jsonMatch ? jsonMatch[0] : "{}";
-    const data = JSON.parse(cleanJson);
-
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error("Error fetching salary insight:", error);
-    return NextResponse.json({ error: "Failed to generate salary insight" }, { status: 500 });
+    return NextResponse.json({ 
+      success: true, 
+      count: totalUpserted,
+      message: `Processed and upserted ${totalUpserted} jobs`
+    })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ success: false, error: message }, { status: 500 })
   }
 }
