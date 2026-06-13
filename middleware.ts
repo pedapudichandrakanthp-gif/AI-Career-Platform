@@ -1,24 +1,49 @@
 import { createServerClient } from '@supabase/ssr'
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-
-const PROTECTED = ['/dashboard','/recommendations','/saved-jobs','/onboarding','/resumes','/profile','/settings']
+import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  const response = NextResponse.next()
+  let supabaseResponse = NextResponse.next({
+    request,
+  })
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { get: (n) => request.cookies.get(n)?.value, set: () => {}, remove: () => {} } }
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          supabaseResponse = NextResponse.next({
+            request,
+          })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
   )
-  const { data: { session } } = await supabase.auth.getSession()
+
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const PROTECTED = ['/dashboard', '/recommendations', '/saved-jobs', '/onboarding', '/resumes', '/profile', '/settings']
   const path = request.nextUrl.pathname
-  if (!session && PROTECTED.some(p => path.startsWith(p))) {
-    return NextResponse.redirect(new URL(`/login?from=${encodeURIComponent(path)}`, request.url))
+  const isProtected = PROTECTED.some((p) => path.startsWith(p))
+
+  if (!user && isProtected) {
+    const url = new URL('/login', request.url)
+    url.searchParams.set('from', path)
+    return NextResponse.redirect(url)
   }
-  return response
+
+  return supabaseResponse
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*','/recommendations/:path*','/saved-jobs/:path*','/onboarding/:path*','/resumes/:path*','/profile/:path*','/settings/:path*']
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 }

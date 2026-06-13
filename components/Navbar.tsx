@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
+import type { Session } from "@supabase/supabase-js";
 import { Menu, Sparkles, X } from "lucide-react";
 
 import { supabase } from "@/lib/supabase";
@@ -34,11 +35,12 @@ function isActiveRoute(pathname: string, href: string): boolean {
 
 export default function Navbar() {
   const pathname = usePathname();
-  const router = useRouter();
+  const navRef = useRef<HTMLElement>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Handle Supabase Auth state
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
@@ -52,6 +54,32 @@ export default function Navbar() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Close on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  // Close on outside click and Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    const handleClickOutside = (e: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) {
+        setMobileOpen(false);
+      }
+    };
+
+    if (mobileOpen) {
+      document.addEventListener("keydown", handleKeyDown);
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [mobileOpen]);
 
   const isAuthenticated = !!session;
 
@@ -69,6 +97,7 @@ export default function Navbar() {
 
   return (
     <nav
+      ref={navRef}
       aria-label="Main navigation"
       className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--background)]/90 backdrop-blur-xl"
     >

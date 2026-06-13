@@ -50,7 +50,7 @@ Resume: ${resumeText}`
       max_tokens: 800
     })
 
-    let analysis: any
+    let analysis: Partial<{ ats_score: number; skills: string[]; strengths: string[]; improvements: string[] }>
     try {
       analysis = JSON.parse(completion.choices[0].message.content || '{}')
     } catch (err) {

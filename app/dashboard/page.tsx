@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { Clock, Sparkles } from "lucide-react";
+import { CheckCircle2, Clock, Copy, Share2, Sparkles } from "lucide-react";
 
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import AIInsightsWidget from "@/components/dashboard/AIInsightsWidget";
@@ -61,6 +61,10 @@ export default function DashboardPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<ResumeAnalysis | null>(null);
   const [hasAnalyzedResume, setHasAnalyzedResume] = useState(false);
+  const [profilePublic, setProfilePublic] = useState(false);
+  const [username, setUsername] = useState("");
+  const [updatingProfile, setUpdatingProfile] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const completion = calculateProfileCompletion(profile, latestResume);
 
@@ -128,6 +132,10 @@ export default function DashboardPage() {
         .order("match_percentage", { ascending: false })
         .limit(3),
     ]);
+
+    const extendedProfile = profileResult.data as (UserProfileRow & { profile_public?: boolean; username?: string }) | null;
+    setProfilePublic(extendedProfile?.profile_public ?? false);
+    setUsername(extendedProfile?.username || user.id); // Auto-assign a unique ID if a user hasn't actively set a username string
 
     setProfile(profileResult.data as UserProfileRow | null);
     setLatestResume(resumeResult.data as ResumeRow | null);
@@ -249,6 +257,33 @@ export default function DashboardPage() {
     }
   };
 
+  const handleTogglePublic = async () => {
+    setUpdatingProfile(true);
+    const newStatus = !profilePublic;
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (user) {
+      const { error } = await supabase
+        .from("users")
+        .update({ profile_public: newStatus, username: username })
+        .eq("id", user.id);
+        
+      if (!error) {
+        setProfilePublic(newStatus);
+        setSuccessMessage(`Profile is now ${newStatus ? "public" : "private"}.`);
+      } else {
+        setErrorMessage("Failed to update profile visibility.");
+      }
+    }
+    setUpdatingProfile(false);
+  };
+
+  const copyScoreLink = () => {
+    navigator.clipboard.writeText(`${window.location.origin}/score/${username}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <ProtectedRoute>
       <main role="main" className="page-main">
@@ -285,6 +320,29 @@ export default function DashboardPage() {
           {successMessage ? <div className="alert-success mt-6">{successMessage}</div> : null}
 
           <div className="mt-8 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
+                <div>
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <Share2 size={18} className="text-purple-500" />
+                    Share Your Score
+                  </h3>
+                  <p className="text-sm text-[var(--muted-foreground)] mt-1">Make your ATS score and top skills visible to recruiters.</p>
+                </div>
+                <div className="flex items-center gap-4">
+                  {profilePublic && (
+                    <button type="button" onClick={copyScoreLink} className="btn-secondary shrink-0 text-sm">
+                      {copied ? <CheckCircle2 size={16} className="mr-2 text-green-500" /> : <Copy size={16} className="mr-2" />}
+                      {copied ? "Copied!" : "Copy Link"}
+                    </button>
+                  )}
+                  <label className="relative inline-flex cursor-pointer items-center">
+                    <input type="checkbox" className="peer sr-only" checked={profilePublic} onChange={handleTogglePublic} disabled={updatingProfile} />
+                    <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:bg-slate-700"></div>
+                    <span className="ml-3 text-sm font-medium text-[var(--foreground)]">{profilePublic ? 'Public' : 'Private'}</span>
+                  </label>
+                </div>
+              </div>
+
               <DashboardStats
                 completion={completion}
                 resumeAnalysis={resumeAnalysis}

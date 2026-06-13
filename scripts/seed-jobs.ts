@@ -1,3 +1,6 @@
+import * as dotenv from 'dotenv'
+dotenv.config({ path: '.env.local' })
+
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
@@ -20,13 +23,13 @@ async function seed() {
 
   const rows = jobs.map((j: any) => ({
     title: j.title,
-    company_name: j.company_name,
+    company: j.company_name,
     location: j.candidate_required_location || 'Remote',
     job_type: j.job_type || 'full_time',
     work_mode: 'remote',
-    description: j.description?.replace(/<[^>]*>/g, '').slice(0, 1500) || '',
     category: j.category || 'Engineering',
-    apply_link: j.url,
+    description: j.description?.replace(/<[^>]*>/g, '').slice(0, 1500) || '',
+    apply_url: j.url,
     is_active: true,
     created_at: j.publication_date || new Date().toISOString()
   }))

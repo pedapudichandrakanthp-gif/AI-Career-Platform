@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
-import { Bookmark, Building2, ExternalLink, MapPin, Sparkles } from "lucide-react";
+import { Bookmark, ExternalLink, MapPin, Sparkles } from "lucide-react";
 
+import JobLogo from "@/components/JobLogo";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { useResumeUpdated } from "@/hooks/useResumeUpdated";
 import { supabase } from "@/lib/supabase";
@@ -59,7 +59,6 @@ function formatSalary(min: number | null | undefined, max: number | null | undef
 }
 
 export default function RecommendationsPage() {
-  const router = useRouter();
   const [recommendations, setRecommendations] = useState<RecommendationViewModel[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
@@ -69,18 +68,9 @@ export default function RecommendationsPage() {
 
     const {
       data: { user },
-      error: userError,
     } = await supabase.auth.getUser();
 
-    if (userError) {
-      setErrorMessage(userError.message);
-      return;
-    }
-
-    if (!user) {
-      router.replace("/login");
-      return;
-    }
+    if (!user) return;
 
     const [recsRes, savedRes] = await Promise.all([
       supabase
@@ -104,7 +94,7 @@ export default function RecommendationsPage() {
       ((recsRes.data ?? []) as unknown as RecommendationQueryRow[]).map(normalizeRecommendation),
     );
     setSavedIds(new Set((savedRes.data ?? []).map((s) => s.job_id)));
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     fetchRecommendations();
@@ -143,8 +133,13 @@ export default function RecommendationsPage() {
 
           {recommendations.length === 0 ? (
             <div className="text-center py-16">
-              <p className="text-[var(--muted-foreground)]">Upload your resume to get personalized recommendations.</p>
-              <Link href="/onboarding" className="mt-4 inline-block underline">Upload Resume</Link>
+              <h3 className="font-display text-xl font-semibold">No recommendations yet</h3>
+              <p className="text-[var(--muted-foreground)] mt-2">
+                Upload your resume to get AI-powered job matches.
+              </p>
+              <Link href="/onboarding" className="btn-primary mt-4 inline-block">
+                Upload Resume
+              </Link>
             </div>
           ) : (
             <div className="mt-8 grid gap-6">
@@ -164,9 +159,7 @@ export default function RecommendationsPage() {
                       <div className="flex-1 p-6">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                           <div className="flex gap-4">
-                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--surface)]">
-                              <Building2 size={22} className="text-[var(--muted-foreground)]" />
-                            </div>
+                            <JobLogo companyName={item.job?.company_name || ""} size="sm" />
                             <div>
                               <h2 className="font-display text-xl font-semibold">
                                 {item.job?.title ?? "Untitled Job"}

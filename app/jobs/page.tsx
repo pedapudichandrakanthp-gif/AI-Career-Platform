@@ -1,17 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Bookmark, Briefcase, Building2, ExternalLink, Filter, MapPin, Search, SlidersHorizontal } from "lucide-react";
+import { Bookmark, Briefcase, Filter, Search, SlidersHorizontal } from "lucide-react";
 
+import JobCard from "@/components/jobs/JobCard";
 import { supabase } from "@/lib/supabase";
-import type { JobFilters, JobRow, MatchScoreRow } from "@/types/database";
+import type { JobFilters, JobRow } from "@/types/database";
 
 export default function JobsPage() {
   const [jobs, setJobs] = useState<JobRow[]>([]);
-  const [matchScores, setMatchScores] = useState<Map<string, number>>(new Map());
   const [keyword, setKeyword] = useState("");
+  const [userSkills, setUserSkills] = useState<string[]>([]);
   const [locationFilter, setLocationFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [jobTypeFilter, setJobTypeFilter] = useState("");
@@ -44,16 +44,15 @@ export default function JobsPage() {
     } = await supabase.auth.getUser();
 
     if (user) {
-      const { data: scores } = await supabase
-        .from("match_scores")
-        .select("job_id, match_percentage")
-        .eq("user_id", user.id);
+      const { data: profileData } = await supabase
+        .from("users")
+        .select("skills")
+        .eq("id", user.id)
+        .single();
 
-      const scoreMap = new Map<string, number>();
-      ((scores ?? []) as Pick<MatchScoreRow, "job_id" | "match_percentage">[]).forEach((s) => {
-        if (s.job_id && s.match_percentage != null) scoreMap.set(s.job_id, s.match_percentage);
-      });
-      setMatchScores(scoreMap);
+      if (profileData?.skills) {
+        setUserSkills(profileData.skills as string[]);
+      }
     }
   }, []);
 
@@ -317,78 +316,7 @@ export default function JobsPage() {
                   )}
                 </div>
               ) : (
-                filteredJobs.map((job) => {
-                  const matchScore = matchScores.get(job.id);
-
-                  return (
-                    <article key={job.id} className="card-interactive">
-                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700">
-                          <Building2 size={24} className="text-[var(--muted-foreground)]" />
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-start justify-between gap-2">
-                            <div>
-                              <Link href={`/jobs/${job.id}`}>
-                                <h2 className="font-display text-lg font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400">
-                                  {job.clean_title ?? job.title ?? "Untitled Job"}
-                                </h2>
-                              </Link>
-                              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-                                {job.company_name}
-                              </p>
-                            </div>
-                            {matchScore != null ? (
-                              <span className="badge-match">{matchScore}% Match</span>
-                            ) : null}
-                          </div>
-
-                          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--muted-foreground)]">
-                            <span className="flex items-center gap-1">
-                              <MapPin size={12} />
-                              {job.location ?? "Not specified"}
-                            </span>
-                            {job.salary_max ? (
-                              <span>Up to ${(job.salary_max / 1000).toFixed(0)}k</span>
-                            ) : null}
-                          </div>
-
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {job.job_type ? <span className="badge-blue">{job.job_type}</span> : null}
-                            {job.work_mode ? (
-                              <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700 dark:bg-purple-950/50 dark:text-purple-300">
-                                {job.work_mode}
-                              </span>
-                            ) : null}
-                            {job.category ? (
-                              <span className="rounded-full bg-slate-200 px-3 py-1 text-xs dark:bg-slate-800">
-                                {job.category}
-                              </span>
-                            ) : null}
-                          </div>
-
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            {job.apply_link ? (
-                              <a href={job.apply_link} target="_blank" rel="noopener noreferrer" className="btn-primary gap-2 text-sm">
-                                <ExternalLink size={14} />
-                                Apply
-                              </a>
-                            ) : (
-                              <Link href={`/jobs/${job.id}`} className="btn-primary gap-2 text-sm">
-                                View Details
-                              </Link>
-                            )}
-                            <button type="button" onClick={() => saveJob(job.id)} className="btn-secondary gap-2 text-sm">
-                              <Bookmark size={14} />
-                              Save
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })
+                filteredJobs.map((job) => <JobCard key={job.id} job={job} userSkills={userSkills} onSaveJob={saveJob} />)
               )}
             </div>
           </div>

@@ -9,7 +9,7 @@
     "lint": "eslint . --max-warnings=0",
     "type-check": "tsc --noEmit",
     "test:ai": "node --env-file=.env.local scripts/test-ai-flows.mjs",
-    "seed": "ts-node --project tsconfig.json scripts/seed-jobs.ts"
+    "seed": "ts-node --project tsconfig.json -r tsconfig-paths/register scripts/seed-jobs.ts"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1066.0",

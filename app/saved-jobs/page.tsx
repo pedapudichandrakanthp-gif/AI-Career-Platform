@@ -76,7 +76,9 @@ export default function SavedJobsPage() {
           {savedJobs.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-muted-foreground">No saved jobs yet.</p>
-              <a href="/jobs" className="mt-4 inline-block underline">Browse Jobs</a>
+              <Link href="/jobs" className="mt-4 inline-block underline">
+                Browse Jobs
+              </Link>
             </div>
           ) : (
             <div className="mt-6 space-y-4">
