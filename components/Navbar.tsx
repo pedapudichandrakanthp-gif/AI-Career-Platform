@@ -36,13 +36,22 @@ export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [session, setSession] = useState<any>(null)
+  const [session, setSession] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_,s) => setSession(s))
-    return () => subscription.unsubscribe()
-  }, [])
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setIsLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, s) => {
+      setSession(s);
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const isAuthenticated = !!session;
 
@@ -77,11 +86,13 @@ export default function Navbar() {
         </Link>
 
         <div className="hidden items-center gap-1 md:flex">
-          {navItems.map((item) => (
-            <Link key={item.href} href={item.href} className={linkClass(item.href)}>
-              {item.label}
-            </Link>
-          ))}
+          {!isLoading &&
+            navItems.map((item) => (
+              <Link key={item.href} href={item.href} className={linkClass(item.href)}>
+                {item.label}
+              </Link>
+            ))
+          }
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
@@ -106,16 +117,18 @@ export default function Navbar() {
           className="border-t border-[var(--border)] bg-[var(--background)] md:hidden"
         >
           <div className="space-y-1 px-4 py-3">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`block ${linkClass(item.href)}`}
-                onClick={() => setMobileOpen(false)}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {!isLoading &&
+              navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`block ${linkClass(item.href)}`}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ))
+            }
           </div>
 
           <div className="border-t border-[var(--border)] px-4 py-3">
