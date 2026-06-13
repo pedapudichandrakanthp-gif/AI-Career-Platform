@@ -55,7 +55,6 @@ export default function DashboardPage() {
   const [savedJobsCount, setSavedJobsCount] = useState(0);
   const [recentSavedJobs, setRecentSavedJobs] = useState<SavedJobWithJob[]>([]);
   const [topRecommendations, setTopRecommendations] = useState<TopRecommendation[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -66,7 +65,6 @@ export default function DashboardPage() {
   const completion = calculateProfileCompletion(profile, latestResume);
 
   const loadDashboard = useCallback(async () => {
-    setIsLoading(true);
     setErrorMessage("");
 
     const {
@@ -76,7 +74,6 @@ export default function DashboardPage() {
 
     if (userError) {
       setErrorMessage(userError.message);
-      setIsLoading(false);
       return;
     }
 
@@ -154,7 +151,6 @@ export default function DashboardPage() {
       };
     });
     setTopRecommendations(recs);
-    setIsLoading(false);
   }, [router]);
 
   useEffect(() => {
@@ -288,12 +284,7 @@ export default function DashboardPage() {
           {errorMessage ? <div className="alert-error mt-6">{errorMessage}</div> : null}
           {successMessage ? <div className="alert-success mt-6">{successMessage}</div> : null}
 
-          {isLoading ? (
-            <div className="mt-12 flex items-center justify-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-            </div>
-          ) : (
-            <div className="mt-8 space-y-6">
+          <div className="mt-8 space-y-6">
               <DashboardStats
                 completion={completion}
                 resumeAnalysis={resumeAnalysis}
@@ -358,13 +349,24 @@ export default function DashboardPage() {
                 hasAnalyzedResume={hasAnalyzedResume}
               />
 
+              {analysisResult && (
+                <div className="widget-card border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/20">
+                  <div className="space-y-1">
+                    <p className="font-semibold text-blue-700 dark:text-blue-300">ATS Score: {analysisResult.ats_score}/100</p>
+                    <p className="text-sm font-medium">Skills: <span className="font-normal text-[var(--muted-foreground)]">{analysisResult.skills_found?.join(', ')}</span></p>
+                    <ul className="mt-2 list-disc list-inside text-xs text-[var(--muted-foreground)] space-y-1">
+                      {analysisResult.suggestions?.map((i, k) => <li key={k}>{i}</li>)}
+                    </ul>
+                  </div>
+                </div>
+              )}
+
               {analysisResult ? (
                 <ResumeAnalysisCard analysis={analysisResult} onClose={() => setAnalysisResult(null)} />
               ) : null}
 
               <CareerRoadmapWidget />
             </div>
-          )}
         </section>
       </main>
     </ProtectedRoute>

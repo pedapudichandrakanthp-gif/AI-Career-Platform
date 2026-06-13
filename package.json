@@ -8,9 +8,11 @@
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "type-check": "tsc --noEmit",
-    "test:ai": "node --env-file=.env.local scripts/test-ai-flows.mjs"
+    "test:ai": "node --env-file=.env.local scripts/test-ai-flows.mjs",
+    "seed": "ts-node --project tsconfig.json scripts/seed-jobs.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.1066.0",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.107.0",
     "groq-sdk": "^0.37.0",

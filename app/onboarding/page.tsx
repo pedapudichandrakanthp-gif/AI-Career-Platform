@@ -33,26 +33,15 @@ export default function OnboardingPage() {
   const [successMessage, setSuccessMessage] = useState("");
   const [extractedProfile, setExtractedProfile] = useState<ExtractedProfile | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
-  const [checkingResume, setCheckingResume] = useState(true);
 
   const checkExistingResume = useCallback(async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      router.replace("/login");
-      return;
-    }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
     const hasResume = await userHasResume(supabase, user.id);
-
     if (hasResume) {
       router.replace("/dashboard");
-      return;
     }
-
-    setCheckingResume(false);
   }, [router]);
 
   useEffect(() => {
@@ -143,16 +132,6 @@ export default function OnboardingPage() {
   const handleSkipProfile = () => {
     setCurrentStep(3);
   };
-
-  if (checkingResume) {
-    return (
-      <ProtectedRoute>
-        <main className="page-main flex items-center justify-center">
-          <p className="text-slate-600 dark:text-slate-400">Loading...</p>
-        </main>
-      </ProtectedRoute>
-    );
-  }
 
   return (
     <ProtectedRoute>

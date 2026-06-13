@@ -10,19 +10,13 @@ import type { SavedJobWithJob } from "@/types/database";
 
 export default function SavedJobsPage() {
   const [savedJobs, setSavedJobs] = useState<SavedJobWithJob[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const fetchSavedJobs = useCallback(async () => {
-    setLoading(true);
-
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    if (!user) return;
 
     const { data, error } = await supabase
       .from("saved_jobs")
@@ -44,7 +38,6 @@ export default function SavedJobsPage() {
 
     if (error) {
       console.error(error);
-      setLoading(false);
       return;
     }
 
@@ -53,7 +46,6 @@ export default function SavedJobsPage() {
     );
 
     setSavedJobs(normalizedSavedJobs);
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -81,14 +73,10 @@ export default function SavedJobsPage() {
             Jobs you have saved for later review.
           </p>
 
-          {loading ? (
-            <p className="card mt-6 text-slate-600 dark:text-slate-400">Loading saved jobs...</p>
-          ) : savedJobs.length === 0 ? (
-            <div className="card mt-6 text-center">
-              <p className="text-slate-600 dark:text-slate-400">No saved jobs yet.</p>
-              <Link href="/jobs" className="btn-primary mt-4 inline-flex">
-                Browse Jobs
-              </Link>
+          {savedJobs.length === 0 ? (
+            <div className="text-center py-16">
+              <p className="text-muted-foreground">No saved jobs yet.</p>
+              <a href="/jobs" className="mt-4 inline-block underline">Browse Jobs</a>
             </div>
           ) : (
             <div className="mt-6 space-y-4">

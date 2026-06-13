@@ -4,11 +4,10 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { ChevronDown, FileText, LogOut, Menu, Settings, Sparkles, User, X } from "lucide-react";
+import { Menu, Sparkles, X } from "lucide-react";
 
 import { supabase } from "@/lib/supabase";
 
-import ProfileMenu from "./ProfileMenu";
 import ThemeToggle from "./ThemeToggle";
 
 const guestNavItems = [
@@ -22,12 +21,7 @@ const authenticatedNavItems = [
   { href: "/jobs", label: "Jobs" },
   { href: "/recommendations", label: "Recommendations" },
   { href: "/saved-jobs", label: "Saved Jobs" },
-] as const;
-
-const profileMenuItems = [
-  { href: "/profile", label: "My Profile", icon: User },
-  { href: "/resumes", label: "Resume", icon: FileText },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/profile", label: "Profile" },
 ] as const;
 
 function isActiveRoute(pathname: string, href: string): boolean {
@@ -42,27 +36,15 @@ export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [mobileProfileOpen, setMobileProfileOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [session, setSession] = useState<any>(null)
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
-    };
+    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_,s) => setSession(s))
+    return () => subscription.unsubscribe()
+  }, [])
 
-    checkAuth();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const isAuthenticated = !!session;
 
   const navItems = isAuthenticated ? authenticatedNavItems : guestNavItems;
 
@@ -75,15 +57,6 @@ export default function Navbar() {
         : "text-[var(--muted-foreground)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]"
     }`;
   };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setMobileOpen(false);
-    router.push("/login");
-  };
-
-  const isProfileSectionActive =
-    pathname === "/profile" || pathname === "/resumes" || pathname.startsWith("/onboarding");
 
   return (
     <nav
@@ -113,13 +86,6 @@ export default function Navbar() {
 
         <div className="hidden items-center gap-3 md:flex">
           <ThemeToggle />
-          {isAuthenticated ? (
-            <ProfileMenu />
-          ) : (
-            <Link href="/register" className="btn-primary">
-              Get Started
-            </Link>
-          )}
         </div>
 
         <button
@@ -155,68 +121,6 @@ export default function Navbar() {
           <div className="border-t border-[var(--border)] px-4 py-3">
             <ThemeToggle />
           </div>
-
-          {isAuthenticated ? (
-            <div className="border-t border-[var(--border)] px-4 py-3">
-              <button
-                type="button"
-                onClick={() => setMobileProfileOpen(!mobileProfileOpen)}
-                aria-expanded={mobileProfileOpen}
-                className={`flex w-full items-center justify-between rounded-lg px-4 py-2 text-sm font-medium ${
-                  isProfileSectionActive
-                    ? "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400"
-                    : "text-[var(--foreground)] hover:bg-[var(--surface)]"
-                }`}
-              >
-                <span className="flex items-center gap-2">
-                  <User size={18} aria-hidden="true" />
-                  Profile
-                </span>
-                <ChevronDown
-                  size={16}
-                  className={`transition-transform ${mobileProfileOpen ? "rotate-180" : ""}`}
-                  aria-hidden="true"
-                />
-              </button>
-
-              {mobileProfileOpen ? (
-                <div className="mt-1 space-y-1 pl-4">
-                  {profileMenuItems.map((item) => {
-                    const Icon = item.icon;
-                    const active = pathname === item.href;
-
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => {
-                          setMobileOpen(false);
-                          setMobileProfileOpen(false);
-                        }}
-                        className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium ${
-                          active
-                            ? "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400"
-                            : "text-[var(--muted-foreground)] hover:bg-[var(--surface)]"
-                        }`}
-                      >
-                        <Icon size={16} aria-hidden="true" />
-                        {item.label}
-                      </Link>
-                    );
-                  })}
-
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="flex w-full items-center gap-2 rounded-lg px-4 py-2 text-left text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
-                  >
-                    <LogOut size={16} aria-hidden="true" />
-                    Logout
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
         </div>
       ) : null}
     </nav>

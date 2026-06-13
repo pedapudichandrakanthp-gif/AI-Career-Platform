@@ -61,12 +61,10 @@ function formatSalary(min: number | null | undefined, max: number | null | undef
 export default function RecommendationsPage() {
   const router = useRouter();
   const [recommendations, setRecommendations] = useState<RecommendationViewModel[]>([]);
-  const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
   const fetchRecommendations = useCallback(async () => {
-    setLoading(true);
     setErrorMessage("");
 
     const {
@@ -76,7 +74,6 @@ export default function RecommendationsPage() {
 
     if (userError) {
       setErrorMessage(userError.message);
-      setLoading(false);
       return;
     }
 
@@ -100,7 +97,6 @@ export default function RecommendationsPage() {
 
     if (recsRes.error) {
       setErrorMessage(recsRes.error.message);
-      setLoading(false);
       return;
     }
 
@@ -108,7 +104,6 @@ export default function RecommendationsPage() {
       ((recsRes.data ?? []) as unknown as RecommendationQueryRow[]).map(normalizeRecommendation),
     );
     setSavedIds(new Set((savedRes.data ?? []).map((s) => s.job_id)));
-    setLoading(false);
   }, [router]);
 
   useEffect(() => {
@@ -146,19 +141,10 @@ export default function RecommendationsPage() {
 
           {errorMessage ? <div className="alert-error mt-6">{errorMessage}</div> : null}
 
-          {loading ? (
-            <div className="mt-12 flex justify-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-            </div>
-          ) : recommendations.length === 0 ? (
-            <div className="card mt-8 text-center">
-              <Sparkles size={40} className="mx-auto text-blue-500/40" />
-              <p className="mt-4 text-[var(--muted-foreground)]">
-                No recommendations yet. Upload your resume to generate AI match scores.
-              </p>
-              <Link href="/resumes" className="btn-primary mt-4 inline-flex">
-                Upload Resume
-              </Link>
+          {recommendations.length === 0 ? (
+            <div className="text-center py-16">
+              <p className="text-[var(--muted-foreground)]">Upload your resume to get personalized recommendations.</p>
+              <Link href="/onboarding" className="mt-4 inline-block underline">Upload Resume</Link>
             </div>
           ) : (
             <div className="mt-8 grid gap-6">
