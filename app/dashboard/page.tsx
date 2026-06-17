@@ -1,432 +1,382 @@
-"use client";
-
+import { Suspense } from "react";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { AlertCircle, Bell, CheckCircle2, Clock, Sparkles } from "lucide-react";
 
-import { CheckCircle2, Clock, Copy, Share2, Sparkles } from "lucide-react";
-
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import AIInsightsWidget from "@/components/dashboard/AIInsightsWidget";
-import CareerRoadmapWidget from "@/components/dashboard/CareerRoadmapWidget";
-import DashboardStats from "@/components/dashboard/DashboardStats";
-import MissingSkillsWidget from "@/components/dashboard/MissingSkillsWidget";
-import NextSteps from "@/components/dashboard/NextSteps";
-import RecommendedJobsWidget from "@/components/dashboard/RecommendedJobsWidget";
-import ResumeAnalysisCard from "@/components/dashboard/ResumeAnalysisCard";
-import { useResumeUpdated } from "@/hooks/useResumeUpdated";
-import { normalizeSavedJob, type SavedJobQueryRow } from "@/lib/jobs/savedJobs";
-import { userHasResume } from "@/lib/onboarding/check";
-import { calculateProfileCompletion } from "@/lib/profile/completion";
-import { urlToBase64 } from "@/lib/resumes/fileUtils";
-import { getAccessToken, uploadAndProcessResume } from "@/lib/resumes/upload";
-import { supabase } from "@/lib/supabase";
-import type { ResumeAnalysis } from "@/types/ai";
-import type {
-  JobRow,
-  MatchScoreRow,
-  ResumeAnalysisRow,
-  ResumeRow,
-  SavedJobWithJob,
-  UserProfileRow,
-} from "@/types/database";
-
-interface TopRecommendation {
-  readonly id: string;
-  readonly match_percentage: number | null;
-  readonly title: string | null;
-  readonly company_name: string | null;
-  readonly location: string | null;
-  readonly job_id: string | null;
+export default async function DashboardPage() {
+  return (
+    <main className="page-main bg-slate-50 dark:bg-slate-900/50 min-h-screen">
+      <div className="page-container max-w-6xl mx-auto space-y-8 py-8">
+        <Suspense fallback={<DashboardLoading />}>
+          <DashboardContent />
+        </Suspense>
+      </div>
+    </main>
+  );
 }
 
-type RecQueryRow = Pick<MatchScoreRow, "id" | "match_percentage" | "job_id"> & {
-  readonly jobs: Pick<JobRow, "title" | "company_name" | "location"> | Pick<JobRow, "title" | "company_name" | "location">[] | null;
-};
-
-export default function DashboardPage() {
-  const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [email, setEmail] = useState("");
-  const [profile, setProfile] = useState<UserProfileRow | null>(null);
-  const [latestResume, setLatestResume] = useState<ResumeRow | null>(null);
-  const [resumeAnalysis, setResumeAnalysis] = useState<ResumeAnalysisRow | null>(null);
-  const [matchScoreCount, setMatchScoreCount] = useState(0);
-  const [savedJobsCount, setSavedJobsCount] = useState(0);
-  const [recentSavedJobs, setRecentSavedJobs] = useState<SavedJobWithJob[]>([]);
-  const [topRecommendations, setTopRecommendations] = useState<TopRecommendation[]>([]);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<ResumeAnalysis | null>(null);
-  const [hasAnalyzedResume, setHasAnalyzedResume] = useState(false);
-  const [profilePublic, setProfilePublic] = useState(false);
-  const [username, setUsername] = useState("");
-  const [updatingProfile, setUpdatingProfile] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  const completion = calculateProfileCompletion(profile, latestResume);
-
-  const loadDashboard = useCallback(async () => {
-    setErrorMessage("");
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError) {
-      setErrorMessage(userError.message);
-      return;
+async function DashboardContent() {
+  const cookieStore = await cookies();
+  
+  // Initialize Server-Side Supabase Client
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { 
+          return cookieStore.getAll(); 
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing user sessions.
+          }
+        }
+      }
     }
+  );
 
-    if (!user) {
-      router.replace("/login");
-      return;
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    redirect("/login");
+  }
+
+  // Fetch all dashboard data concurrently
+  const [profileRes, applicationsRes, jobsRes] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', user.id).single(),
+    supabase.from('applications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+    supabase.from('jobs').select('*').eq('is_active', true)
+  ]);
+
+  const profile = profileRes.data;
+
+  interface DashboardJob {
+    id: string;
+    title?: string;
+    exam_name?: string;
+    conducting_body?: string;
+    apply_end_date?: string;
+    age_max?: number;
+    age_min?: number;
+    state?: string;
+  }
+
+  interface DashboardApplication {
+    id: string;
+    title?: string;
+    company?: string;
+    status?: string;
+  }
+
+  const applications: DashboardApplication[] = applicationsRes.data || [];
+  const jobs: DashboardJob[] = jobsRes.data || [];
+
+  // Calculate Eligibility & Find Urgent Deadlines
+  let eligibleJobsCount = 0;
+  const urgentJobs: DashboardJob[] = [];
+  const now = new Date();
+
+  const getDaysRemaining = (dateString: string) => {
+    return Math.ceil((new Date(dateString).getTime() - now.getTime()) / (1000 * 3600 * 24));
+  };
+
+  jobs.forEach(job => {
+    // Basic Eligibility Check
+    let isEligible = true;
+    let maxAge = job.age_max || 99;
+    
+    if (profile?.category === 'OBC') maxAge += 3;
+    if (profile?.category === 'SC' || profile?.category === 'ST') maxAge += 5;
+    
+    if (job.age_min && profile?.age && profile.age < job.age_min) isEligible = false;
+    if (profile?.age && profile.age > maxAge) isEligible = false;
+    if (job.state && job.state !== 'Central' && profile?.state && job.state !== profile.state) isEligible = false;
+    
+    if (isEligible) eligibleJobsCount++;
+
+    // Urgent Deadline Check
+    if (job.apply_end_date) {
+      const days = getDaysRemaining(job.apply_end_date);
+      if (days >= 0 && days <= 7) {
+        urgentJobs.push(job);
+      }
     }
-
-    if (!(await userHasResume(supabase, user.id))) {
-      router.replace("/onboarding");
-      return;
-    }
-
-    setEmail(user.email ?? "");
-
-    const [
-      profileResult,
-      resumeResult,
-      analysisResult2,
-      savedCountResult,
-      matchCountResult,
-      recentSavedResult,
-      topRecsResult,
-    ] = await Promise.all([
-      supabase.from("users").select("*").eq("id", user.id).maybeSingle(),
-      supabase
-        .from("resumes")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("uploaded_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from("resume_analysis")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase.from("saved_jobs").select("id", { count: "exact", head: true }).eq("user_id", user.id),
-      supabase.from("match_scores").select("id", { count: "exact", head: true }).eq("user_id", user.id),
-      supabase
-        .from("saved_jobs")
-        .select(`id, saved_at, jobs (id, title, company_name, location, category)`)
-        .eq("user_id", user.id)
-        .order("saved_at", { ascending: false })
-        .limit(5),
-      supabase
-        .from("match_scores")
-        .select(`id, match_percentage, job_id, jobs (title, company_name, location)`)
-        .eq("user_id", user.id)
-        .order("match_percentage", { ascending: false })
-        .limit(3),
-    ]);
-
-    const extendedProfile = profileResult.data as (UserProfileRow & { profile_public?: boolean; username?: string }) | null;
-    setProfilePublic(extendedProfile?.profile_public ?? false);
-    setUsername(extendedProfile?.username || user.id); // Auto-assign a unique ID if a user hasn't actively set a username string
-
-    setProfile(profileResult.data as UserProfileRow | null);
-    setLatestResume(resumeResult.data as ResumeRow | null);
-    setResumeAnalysis(analysisResult2.data as ResumeAnalysisRow | null);
-    setSavedJobsCount(savedCountResult.count ?? 0);
-    setMatchScoreCount(matchCountResult.count ?? 0);
-    setRecentSavedJobs(
-      ((recentSavedResult.data ?? []) as unknown as SavedJobQueryRow[]).map(normalizeSavedJob),
-    );
-    setHasAnalyzedResume(Boolean(analysisResult2.data));
-
-    const recs = ((topRecsResult.data ?? []) as unknown as RecQueryRow[]).map((row) => {
-      const job = Array.isArray(row.jobs) ? row.jobs[0] : row.jobs;
-      return {
-        id: row.id,
-        match_percentage: row.match_percentage,
-        job_id: row.job_id,
-        title: job?.title ?? null,
-        company_name: job?.company_name ?? null,
-        location: job?.location ?? null,
-      };
-    });
-    setTopRecommendations(recs);
-  }, [router]);
-
-  useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
-
-  useResumeUpdated(() => {
-    loadDashboard();
   });
 
-  const handleUpdateResume = () => fileInputRef.current?.click();
+  urgentJobs.sort((a, b) => new Date(a.apply_end_date || "").getTime() - new Date(b.apply_end_date || "").getTime());
 
-  const handleFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  // Profile Completion Logic
+  const requiredFields = ['full_name', 'date_of_birth', 'gender', 'category', 'state', 'highest_qualification'];
+  const missingFields = requiredFields.filter(f => !profile?.[f]);
+  const completionPercent = Math.round(((requiredFields.length - missingFields.length) / requiredFields.length) * 100);
+  const formatField = (f: string) => f.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
-    setUploading(true);
-    setErrorMessage("");
-    setSuccessMessage("");
+  // Mock active tasks for demonstration (Assuming fetched from active study plans logic)
+  const mockTasks = [
+    { id: '1', subject: 'Quantitative Aptitude', topic: 'Percentages & Ratios', duration: '45 mins', completed: true },
+    { id: '2', subject: 'Reasoning', topic: 'Coding-Decoding', duration: '30 mins', completed: false },
+    { id: '3', subject: 'General Awareness', topic: 'Current Affairs - July', duration: '20 mins', completed: false },
+    { id: '4', subject: 'English', topic: 'Reading Comprehension', duration: '40 mins', completed: false },
+  ];
+  const completedCount = mockTasks.filter(t => t.completed).length;
 
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
+  // Mock Upcoming Notifications
+  const upcoming = [
+    { name: 'IBPS PO 2026', expected: 'August 2026' },
+    { name: 'RRB NTPC 2026', expected: 'September 2026' },
+    { name: 'SSC CHSL 2026', expected: 'October 2026' },
+  ];
 
-      const accessToken = await getAccessToken(supabase);
+  // Kanban Columns
+  const COLUMNS = ["Saved", "Applied", "Preparing", "Result Awaited", "Selected"];
 
-      await uploadAndProcessResume(supabase, {
-        file,
-        userId: user.id,
-        accessToken,
-        replaceExisting: true,
-      });
+  // --- SERVER ACTIONS ---
 
-      setSuccessMessage("Resume updated. Profile and recommendations refreshed automatically.");
-      await loadDashboard();
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Upload failed.");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
+  async function updateStatus(formData: FormData) {
+    "use server";
+    const appId = formData.get("appId") as string;
+    const status = formData.get("status") as string;
+    if (!appId || !status) return;
 
-  const handleAnalyzeResume = async () => {
-    if (!latestResume) return;
-
-    setAnalyzing(true);
-    setErrorMessage("");
-
-    try {
-      const accessToken = await getAccessToken(supabase);
-      let body: Record<string, string>;
-
-      if (latestResume.extracted_text) {
-        body = { resumeText: latestResume.extracted_text, resumeId: latestResume.id };
-      } else if (latestResume.file_url) {
-        const { base64, mimeType } = await urlToBase64(latestResume.file_url);
-        body = { pdfBase64: base64, mimeType, resumeId: latestResume.id };
-      } else {
-        throw new Error("Resume file not available.");
+    const cookieStore = await cookies();
+    const sb = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+      cookies: { 
+        getAll() { return cookieStore.getAll(); },
+        setAll(cookiesToSet) { 
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // ignore
+          }
+        }
       }
+    });
 
-      const response = await fetch("/api/ai/analyze-resume", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(body),
-      });
+    await sb.from('applications').update({ status }).eq('id', appId);
+    revalidatePath('/dashboard');
+  }
 
-      if (!response.ok) {
-        const data = (await response.json()) as { error?: string };
-        throw new Error(data.error ?? "Analysis failed.");
-      }
+  async function toggleTask(formData: FormData) {
+    "use server";
+    // Placeholder for actual study_tracker save/toggle logic
+    console.log("Toggle task:", formData.get("taskId"));
+    revalidatePath('/dashboard');
+  }
 
-      const data = (await response.json()) as { analysis: ResumeAnalysis };
-      setAnalysisResult(data.analysis);
-      setHasAnalyzedResume(true);
-      setSuccessMessage("Resume analysis complete.");
-      await loadDashboard();
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Analysis failed.");
-    } finally {
-      setAnalyzing(false);
-    }
-  };
-
-  const handleViewResume = () => {
-    if (latestResume?.file_url) {
-      window.open(latestResume.file_url, "_blank");
-    } else {
-      router.push("/resumes");
-    }
-  };
-
-  const handleTogglePublic = async () => {
-    setUpdatingProfile(true);
-    const newStatus = !profilePublic;
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (user) {
-      const { error } = await supabase
-        .from("users")
-        .update({ profile_public: newStatus, username: username })
-        .eq("id", user.id);
-        
-      if (!error) {
-        setProfilePublic(newStatus);
-        setSuccessMessage(`Profile is now ${newStatus ? "public" : "private"}.`);
-      } else {
-        setErrorMessage("Failed to update profile visibility.");
-      }
-    }
-    setUpdatingProfile(false);
-  };
-
-  const copyScoreLink = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/score/${username}`);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  async function setAlert(formData: FormData) {
+    "use server";
+    // Placeholder for alerting mechanism
+    console.log("Alert set for:", formData.get("examName"));
+  }
 
   return (
-    <ProtectedRoute>
-      <main role="main" className="page-main">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".pdf"
-          className="hidden"
-          onChange={handleFileSelected}
-        />
+    <div className="space-y-10">
+      
+      {/* SECTION 1: Welcome + Eligibility Banner */}
+      <div className="rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-indigo-800 p-8 sm:p-10 text-white shadow-xl relative overflow-hidden">
+        <div className="relative z-10">
+          <h1 className="text-3xl sm:text-4xl font-bold font-display">
+            Welcome back, {profile?.full_name?.split(' ')[0] || 'Aspirant'}!
+          </h1>
+          <p className="mt-4 text-4xl sm:text-5xl font-extrabold text-blue-100 tracking-tight">
+            You are eligible for <span className="text-white">{eligibleJobsCount}</span> government jobs
+          </p>
+          <p className="mt-4 text-sm sm:text-base font-medium text-blue-200/90 flex flex-wrap items-center gap-2">
+            Based on your profile: {profile?.highest_qualification || 'Graduate'} | Age {profile?.age || '24'} | {profile?.category || 'UR'} | {profile?.state || 'India'}
+          </p>
+          <div className="mt-8">
+            <Link href="/jobs?eligible=true" className="inline-flex items-center justify-center rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-blue-700 hover:bg-blue-50 hover:scale-[1.02] transition-all shadow-sm">
+              View All Eligible Jobs
+            </Link>
+          </div>
+        </div>
+        <Sparkles className="absolute -right-10 -bottom-10 text-white opacity-10 w-64 h-64 pointer-events-none" />
+      </div>
 
-        <section className="page-container">
-          {/* Header */}
-          <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-gradient-to-br from-blue-600/10 via-indigo-600/5 to-transparent p-6 sm:p-8">
-            <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-blue-500/10 blur-2xl" />
-            <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400">
-                  <Sparkles size={16} />
-                  AvsarGrid Dashboard
+      {/* SECTION 2: Urgent Deadlines */}
+      {urgentJobs.length > 0 && (
+        <section className="space-y-4">
+          <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-[var(--foreground)]">
+            <span className="text-red-500 animate-pulse">🔴</span> Apply Before It&apos;s Too Late
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {urgentJobs.map(job => {
+              const daysLeft = getDaysRemaining(job.apply_end_date || "");
+              const isRed = daysLeft <= 3;
+              return (
+                <div key={job.id} className={`card p-5 border-l-4 ${isRed ? 'border-l-red-500 bg-red-50/30 dark:bg-red-900/10' : 'border-l-orange-400'}`}>
+                  <h3 className="font-semibold text-lg line-clamp-1">{job.exam_name || job.title}</h3>
+                  <p className="text-sm text-[var(--muted-foreground)] mt-1 line-clamp-1">{job.conducting_body}</p>
+                  <div className="mt-5 flex items-center justify-between">
+                    <span className={`text-sm font-semibold flex items-center gap-1.5 ${isRed ? 'text-red-600 dark:text-red-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                      <Clock size={14}/> {daysLeft === 0 ? 'Ends Today' : `${daysLeft} days left`}
+                    </span>
+                    <Link href={`/jobs/${job.id}`} className="btn-secondary text-xs px-4 py-2 border-none bg-white dark:bg-slate-800 shadow-sm hover:shadow">
+                      Apply Now
+                    </Link>
+                  </div>
                 </div>
-                <h1 className="page-title mt-1">
-                  Welcome back{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}
-                </h1>
-                <p className="mt-1 text-sm text-[var(--muted-foreground)]">{email}</p>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* SECTION 3: My Applications (Kanban) */}
+      <section className="space-y-4">
+        <h2 className="text-xl sm:text-2xl font-bold text-[var(--foreground)]">My Applications</h2>
+        <div className="flex gap-4 overflow-x-auto pb-6 snap-x hide-scrollbar">
+          {COLUMNS.map(col => {
+            const colApps = applications.filter(a => (a.status || 'Saved').toLowerCase() === col.toLowerCase());
+            return (
+              <div key={col} className="min-w-[300px] flex-shrink-0 bg-slate-100 dark:bg-slate-800/50 rounded-2xl p-4 snap-start border border-[var(--border)]">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-sm text-[var(--muted-foreground)] uppercase tracking-wider">{col}</h3>
+                  <span className="bg-slate-200 dark:bg-slate-700 text-xs font-semibold px-2 py-0.5 rounded-full">{colApps.length}</span>
+                </div>
+                <div className="space-y-3">
+                  {colApps.map(app => (
+                    <div key={app.id} className="bg-white dark:bg-[var(--surface)] p-4 rounded-xl shadow-sm border border-[var(--border)] relative group">
+                      <h4 className="font-semibold text-sm leading-tight text-[var(--foreground)]">{app.title}</h4>
+                      <p className="text-xs text-[var(--muted-foreground)] mt-1">{app.company}</p>
+                      
+                      <form action={updateStatus} className="mt-4 flex items-center gap-2">
+                        <input type="hidden" name="appId" value={app.id} />
+                        <select name="status" defaultValue={app.status || "Saved"} className="input text-xs py-1.5 px-2 h-auto flex-1 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 cursor-pointer focus:ring-1 focus:ring-blue-500">
+                          {COLUMNS.map(c => <option key={c} value={c.toLowerCase()}>{c}</option>)}
+                        </select>
+                        <button type="submit" className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors">
+                          Update
+                        </button>
+                      </form>
+                    </div>
+                  ))}
+                  {colApps.length === 0 && (
+                    <div className="text-center py-6 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
+                      <p className="text-xs font-medium text-[var(--muted-foreground)]">No apps here</p>
+                    </div>
+                  )}
+                </div>
               </div>
-              <Link href="/recommendations" className="btn-primary shrink-0">
-                View Recommendations
-              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* SECTION 4: Today's Study Tasks */}
+        <section className="card p-6 sm:p-8 border-t-4 border-t-green-500">
+          <h2 className="text-xl font-bold flex items-center gap-2 mb-6 text-[var(--foreground)]">
+            Today&apos;s Study Tasks
+          </h2>
+          <div className="mb-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl">
+            <div className="flex justify-between text-sm mb-2 font-semibold">
+              <span className="text-[var(--muted-foreground)]">Daily Progress</span>
+              <span className="text-green-600 dark:text-green-400">{completedCount}/{mockTasks.length} tasks completed</span>
+            </div>
+            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+              <div className="bg-green-500 h-2 rounded-full transition-all duration-500" style={{width: `${(completedCount/mockTasks.length)*100}%`}}></div>
             </div>
           </div>
-
-          {errorMessage ? <div className="alert-error mt-6">{errorMessage}</div> : null}
-          {successMessage ? <div className="alert-success mt-6">{successMessage}</div> : null}
-
-          <div className="mt-8 space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm">
-                <div>
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <Share2 size={18} className="text-purple-500" />
-                    Share Your Score
-                  </h3>
-                  <p className="text-sm text-[var(--muted-foreground)] mt-1">Make your ATS score and top skills visible to recruiters.</p>
+          <div className="space-y-3">
+            {mockTasks.map(task => (
+              <form key={task.id} action={toggleTask} className={`flex items-center gap-3 p-3.5 rounded-xl transition-all border ${task.completed ? 'bg-slate-50 border-transparent dark:bg-slate-800/30' : 'bg-white border-slate-200 hover:border-blue-300 dark:bg-[var(--surface)] dark:border-slate-700 shadow-sm'}`}>
+                <input type="hidden" name="taskId" value={task.id} />
+                <button type="submit" className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center border-2 transition-colors ${task.completed ? 'bg-green-500 border-green-500 text-white' : 'border-slate-300 dark:border-slate-600 hover:border-green-400'}`}>
+                  {task.completed && <CheckCircle2 size={14} className="stroke-[3]" />}
+                </button>
+                <div className="flex-1">
+                  <p className={`text-sm font-bold ${task.completed ? 'line-through text-slate-400 dark:text-slate-500' : 'text-[var(--foreground)]'}`}>
+                    {task.topic}
+                  </p>
+                  <p className="text-xs font-medium text-[var(--muted-foreground)] mt-0.5">
+                    {task.subject} • {task.duration}
+                  </p>
                 </div>
-                <div className="flex items-center gap-4">
-                  {profilePublic && (
-                    <button type="button" onClick={copyScoreLink} className="btn-secondary shrink-0 text-sm">
-                      {copied ? <CheckCircle2 size={16} className="mr-2 text-green-500" /> : <Copy size={16} className="mr-2" />}
-                      {copied ? "Copied!" : "Copy Link"}
-                    </button>
-                  )}
-                  <label className="relative inline-flex cursor-pointer items-center">
-                    <input type="checkbox" className="peer sr-only" checked={profilePublic} onChange={handleTogglePublic} disabled={updatingProfile} />
-                    <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:bg-slate-700"></div>
-                    <span className="ml-3 text-sm font-medium text-[var(--foreground)]">{profilePublic ? 'Public' : 'Private'}</span>
-                  </label>
-                </div>
-              </div>
-
-              <DashboardStats
-                completion={completion}
-                resumeAnalysis={resumeAnalysis}
-                matchScoreCount={matchScoreCount}
-                savedJobsCount={savedJobsCount}
-                resumeFileName={latestResume?.file_name ?? null}
-                resumeUploadedAt={latestResume?.uploaded_at ?? null}
-                onUpdateResume={handleUpdateResume}
-                onAnalyzeResume={handleAnalyzeResume}
-                onViewResume={handleViewResume}
-                uploading={uploading}
-                analyzing={analyzing}
-              />
-
-              <div className="grid gap-6 lg:grid-cols-2">
-                <RecommendedJobsWidget jobs={topRecommendations} />
-                <MissingSkillsWidget resumeAnalysis={resumeAnalysis} />
-              </div>
-
-              <div className="grid gap-6 lg:grid-cols-2">
-                <AIInsightsWidget resumeAnalysis={resumeAnalysis} />
-                <section className="widget-card">
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-xl bg-slate-100 p-2.5 dark:bg-slate-800">
-                      <Clock size={20} className="text-[var(--muted-foreground)]" />
-                    </div>
-                    <h2 className="font-display text-lg font-semibold">Recent Activity</h2>
-                  </div>
-                  <div className="mt-4 space-y-3">
-                    {recentSavedJobs.length === 0 ? (
-                      <p className="text-sm text-[var(--muted-foreground)]">No recent activity yet.</p>
-                    ) : (
-                      recentSavedJobs.map((saved) => (
-                        <div
-                          key={saved.id}
-                          className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 text-sm"
-                        >
-                          <div>
-                            <p className="font-medium">{saved.jobs?.title ?? "Saved job"}</p>
-                            <p className="text-xs text-[var(--muted-foreground)]">
-                              Saved {saved.saved_at ? new Date(saved.saved_at).toLocaleDateString() : ""}
-                            </p>
-                          </div>
-                          {saved.jobs?.id ? (
-                            <Link href={`/jobs/${saved.jobs.id}`} className="text-xs font-medium text-blue-600 dark:text-blue-400">
-                              View
-                            </Link>
-                          ) : null}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </section>
-              </div>
-
-              <NextSteps
-                hasResume={Boolean(latestResume)}
-                hasMatchScores={matchScoreCount > 0}
-                completion={completion}
-                onAnalyzeResume={handleAnalyzeResume}
-                analyzing={analyzing}
-                hasAnalyzedResume={hasAnalyzedResume}
-              />
-
-              {analysisResult && (
-                <div className="widget-card border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/20">
-                  <div className="space-y-1">
-                    <p className="font-semibold text-blue-700 dark:text-blue-300">ATS Score: {analysisResult.ats_score}/100</p>
-                    <p className="text-sm font-medium">Skills: <span className="font-normal text-[var(--muted-foreground)]">{analysisResult.skills_found?.join(', ')}</span></p>
-                    <ul className="mt-2 list-disc list-inside text-xs text-[var(--muted-foreground)] space-y-1">
-                      {analysisResult.suggestions?.map((i, k) => <li key={k}>{i}</li>)}
-                    </ul>
-                  </div>
-                </div>
-              )}
-
-              {analysisResult ? (
-                <ResumeAnalysisCard analysis={analysisResult} onClose={() => setAnalysisResult(null)} />
-              ) : null}
-
-              <CareerRoadmapWidget />
-            </div>
+              </form>
+            ))}
+          </div>
         </section>
-      </main>
-    </ProtectedRoute>
+
+        <div className="space-y-8">
+          {/* SECTION 5: Upcoming Notifications */}
+          <section className="card p-6 sm:p-8">
+            <h2 className="text-xl font-bold flex items-center gap-2 mb-6 text-[var(--foreground)]">
+              Coming Soon
+            </h2>
+            <div className="space-y-5">
+              {upcoming.map(u => (
+                <div key={u.name} className="flex items-center justify-between pb-5 border-b border-[var(--border)] last:border-0 last:pb-0">
+                  <div>
+                    <h3 className="font-bold text-sm text-[var(--foreground)]">{u.name}</h3>
+                    <p className="text-xs font-medium text-[var(--muted-foreground)] mt-1 flex items-center gap-1.5">
+                      <AlertCircle size={14}/> Expected: {u.expected}
+                    </p>
+                  </div>
+                  <form action={setAlert}>
+                    <input type="hidden" name="examName" value={u.name} />
+                    <button type="submit" className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5 shadow-sm">
+                      <Bell size={14} /> Set Alert
+                    </button>
+                  </form>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* SECTION 6: Profile Completion */}
+          <section className="card p-6 sm:p-8 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/10 border-indigo-100 dark:border-indigo-900/30">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-indigo-900 dark:text-indigo-300">
+                  Profile Completion
+                </h2>
+                <p className="text-sm font-medium text-indigo-700/80 dark:text-indigo-400/80 mt-1">
+                  Complete your profile to see more eligible jobs
+                </p>
+              </div>
+              <div className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">
+                {completionPercent}%
+              </div>
+            </div>
+            
+            <div className="mt-5 w-full bg-white dark:bg-slate-800 rounded-full h-2.5 overflow-hidden shadow-inner">
+              <div className="bg-indigo-600 h-2.5 rounded-full transition-all duration-1000 ease-out" style={{ width: `${completionPercent}%` }}></div>
+            </div>
+            
+            {missingFields.length > 0 && (
+              <div className="mt-6 flex flex-wrap gap-2.5">
+                {missingFields.map(f => (
+                  <Link key={f} href="/onboarding" className="inline-flex items-center px-3.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 transition-colors shadow-sm">
+                    + Add {formatField(f)}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DashboardLoading() {
+  return (
+    <div className="space-y-10 animate-pulse">
+      <div className="h-48 sm:h-56 bg-slate-200 dark:bg-slate-800 rounded-3xl"></div>
+      <div className="h-40 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+      <div className="h-64 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+    </div>
   );
 }

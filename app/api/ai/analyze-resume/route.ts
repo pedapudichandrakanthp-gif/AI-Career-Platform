@@ -52,7 +52,10 @@ Resume: ${resumeText}`
 
     let analysis: Partial<{ ats_score: number; skills: string[]; strengths: string[]; improvements: string[] }>
     try {
-      analysis = JSON.parse(completion.choices[0].message.content || '{}')
+      if (!completion?.choices?.[0]?.message?.content) {
+        throw new Error('No response content from AI');
+      }
+      analysis = JSON.parse(completion.choices[0].message.content);
     } catch (err) {
       console.error("Groq JSON parsing error:", err);
       analysis = { ats_score: 0, skills: [], improvements: ['Unable to parse resume'] }

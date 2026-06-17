@@ -146,7 +146,7 @@ export default function JobCard({ job, userSkills, onSaveJob }: JobCardProps) {
   return (
     <article className="card-interactive">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-        <JobLogo companyName={job.company_name || ""} />
+        <JobLogo company_name={job.company_name || ""} />
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-start justify-between gap-2">

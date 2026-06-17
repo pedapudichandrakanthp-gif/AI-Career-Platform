@@ -154,12 +154,6 @@ export default function JobDetailsPage() {
         <article className="card">
           <h1 className="page-title">{job.title ?? "Untitled Job"}</h1>
 
-          {job.source ? (
-            <span className="mt-3 inline-flex rounded-full bg-slate-200 px-3 py-1 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-              Source: {job.source}
-            </span>
-          ) : null}
-
           <dl className="mt-6 grid gap-4 sm:grid-cols-2">
             <div>
               <dt className="text-sm font-medium text-slate-500 dark:text-slate-400">Company</dt>

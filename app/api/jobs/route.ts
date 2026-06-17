@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import Groq from "groq-sdk";
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
-
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -16,6 +12,10 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    const groq = new Groq({
+      apiKey: process.env.GROQ_API_KEY,
+    });
 
     const prompt = `Write a professional cover letter for ${jobTitle} at ${company || "the company"}.
 Candidate profile: ${userProfile?.summary || "Experienced professional"}, Skills: ${userProfile?.skills || "N/A"}.

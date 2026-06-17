@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Building2 } from "lucide-react";
 
 interface JobLogoProps {
@@ -22,7 +23,7 @@ export default function JobLogo({ companyName, size = "md" }: JobLogoProps) {
   return (
     <div className={`flex shrink-0 items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 overflow-hidden ${containerClasses}`}>
       {!error && companyName ? (
-        <img
+        <Image
           src={`https://logo.clearbit.com/${companyDomain}`}
           alt={companyName}
           width={32}

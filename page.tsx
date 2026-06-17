@@ -16,6 +16,7 @@ const initialForm = {
   company_name: "",
   location: "",
   job_type: "full_time",
+  work_mode: "remote",
   category: "Engineering",
   salary_min: "",
   salary_max: "",

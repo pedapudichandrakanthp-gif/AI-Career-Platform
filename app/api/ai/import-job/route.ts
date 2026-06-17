@@ -1,49 +1,86 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { generateJsonFromText } from "@/lib/ai/groq";
-import { IMPORT_JOB_PROMPT } from "@/lib/ai/prompts";
-import { aiErrorResponse } from "@/lib/ai/route-handler";
-import { getAuthenticatedUser } from "@/lib/api/auth";
-import type { ImportedJobData } from "@/types/ai";
-
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  const auth = await getAuthenticatedUser(request);
-
-  if (!auth.user) {
-    return NextResponse.json({ error: auth.error }, { status: 401 });
-  }
-
   try {
-    const body = (await request.json()) as { url?: string; description?: string };
+    const body = await request.json();
+    let jobText = body.text || "";
 
-    let content = body.description ?? "";
-
-    if (body.url?.trim()) {
-      content = `Job URL: ${body.url.trim()}\n\n${content}`.trim();
+    if (body.url) {
+      try {
+        const res = await fetch(body.url);
+        const html = await res.text();
+        jobText = html.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+      } catch {
+        return NextResponse.json({ error: "Failed to fetch URL" }, { status: 400 });
+      }
     }
 
-    if (!content) {
-      return NextResponse.json({ error: "URL or job description is required." }, { status: 400 });
+    if (!jobText) {
+      return NextResponse.json({ error: "No text or URL provided." }, { status: 400 });
     }
 
-    const jobData = await generateJsonFromText<ImportedJobData>(IMPORT_JOB_PROMPT, content);
+    const prompt = `Extract government job details from this posting.
+Return ONLY valid JSON, no markdown:
+{
+  "exam_name": "SSC CGL 2026",
+  "title": "Combined Graduate Level Examination 2026",
+  "conducting_body": "Staff Selection Commission",
+  "job_level": "central",
+  "state": "Central",
+  "category": "SSC",
+  "vacancies": 8400,
+  "vacancies_ur": 3200,
+  "vacancies_obc": 2100,
+  "vacancies_sc": 1200,
+  "vacancies_st": 600,
+  "vacancies_ews": 800,
+  "vacancies_pwd": 500,
+  "age_min": 18,
+  "age_max": 32,
+  "qualification_required": "Bachelor's Degree",
+  "pay_scale": "Pay Level 4-7 (₹25,500 - ₹1,51,100)",
+  "apply_start_date": "2026-07-15",
+  "apply_end_date": "2026-08-12",
+  "exam_date": "2026-10-01",
+  "result_date": null,
+  "notification_pdf_url": "url or null",
+  "official_website": "https://ssc.nic.in",
+  "apply_link": "https://ssc.nic.in/apply",
+  "description": "full description max 1500 chars",
+  "status": "open"
+}
 
-    return NextResponse.json({
-      job: {
-        title: jobData.title ?? "",
-        company_name: jobData.company_name ?? "",
-        location: jobData.location ?? "",
-        job_type: jobData.job_type ?? "",
-        category: jobData.category ?? "",
-        skills: jobData.skills ?? [],
-        qualification: jobData.qualification ?? "",
-        experience_required: jobData.experience_required ?? null,
-        description: jobData.description ?? "",
+Job posting text:
+${jobText.substring(0, 15000)}`;
+
+    const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        model: "llama3-8b-8192",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 1200,
+        response_format: { type: "json_object" }
+      })
     });
-  } catch (error) {
-    return aiErrorResponse("import-job", error);
+
+    if (!groqRes.ok) {
+      const err = await groqRes.text();
+      throw new Error(`Groq API error: ${err}`);
+    }
+
+    const groqData = await groqRes.json();
+    const content = groqData.choices[0]?.message?.content;
+    const jobData = JSON.parse(content);
+
+    return NextResponse.json({ job: jobData });
+  } catch (error: unknown) {
+    const err = error as Error;
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
