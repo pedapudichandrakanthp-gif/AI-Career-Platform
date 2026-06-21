@@ -5,15 +5,15 @@ import { supabase } from "@/lib/supabase";
 
 interface JobRow {
   id: string;
-  title: string;
-  company_name: string;
+  exam_name: string;
+  conducting_body: string;
   created_at: string;
   is_active: boolean;
 }
 
 const initialForm = {
-  title: "",
-  company_name: "",
+  exam_name: "",
+  conducting_body: "",
   location: "",
   job_type: "full_time",
   work_mode: "remote",
@@ -51,7 +51,7 @@ export default function PostJobPage() {
   const fetchRecentJobs = async () => {
     const { data } = await supabase
       .from("jobs")
-      .select("id, title, company_name, created_at, is_active")
+      .select("id, exam_name, conducting_body, created_at, is_active")
       .order("created_at", { ascending: false })
       .limit(5);
     
@@ -65,8 +65,8 @@ export default function PostJobPage() {
     setSuccess("");
 
     const payload = {
-      title: form.title,
-      company_name: form.company_name,
+      exam_name: form.exam_name,
+      conducting_body: form.conducting_body,
       location: form.location || null,
       job_type: form.job_type || null,
       category: form.category || null,
@@ -133,24 +133,24 @@ export default function PostJobPage() {
         <form onSubmit={handleSubmit} className="card space-y-6">
           <div className="grid gap-6 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label className="label" htmlFor="title">Job Title *</label>
+              <label className="label" htmlFor="exam_name">Exam Name *</label>
               <input 
-                id="title" 
+                id="exam_name" 
                 required 
                 className="input" 
-                value={form.title} 
-                onChange={(e) => setForm({ ...form, title: e.target.value })} 
+                value={form.exam_name} 
+                onChange={(e) => setForm({ ...form, exam_name: e.target.value })} 
               />
             </div>
 
             <div>
-              <label className="label" htmlFor="company">Company Name *</label>
+              <label className="label" htmlFor="conducting_body">Conducting Body *</label>
               <input 
-                id="company" 
+                id="conducting_body" 
                 required 
                 className="input" 
-                value={form.company_name} 
-                onChange={(e) => setForm({ ...form, company_name: e.target.value })} 
+                value={form.conducting_body} 
+                onChange={(e) => setForm({ ...form, conducting_body: e.target.value })} 
               />
             </div>
 
@@ -307,10 +307,10 @@ export default function PostJobPage() {
                         {job.id.slice(0, 8)}...
                       </td>
                       <td className="px-4 py-3 font-medium text-[var(--foreground)]">
-                        {job.title}
+                        {job.exam_name}
                       </td>
                       <td className="px-4 py-3 text-[var(--muted-foreground)]">
-                        {job.company_name}
+                        {job.conducting_body}
                       </td>
                       <td className="px-4 py-3 text-[var(--muted-foreground)]">
                         {new Date(job.created_at).toLocaleDateString()}

@@ -89,15 +89,15 @@ export default function SavedJobsPage() {
                       {item.jobs?.id ? (
                         <Link href={`/jobs/${item.jobs.id}`}>
                           <h2 className="card-title text-blue-600 hover:text-blue-500 dark:text-blue-400">
-                            {item.jobs.title ?? "Untitled Exam"}
+                            {item.jobs.exam_name ?? "Untitled Exam"}
                           </h2>
                         </Link>
                       ) : (
-                        <h2 className="card-title">{item.jobs?.title ?? "Untitled Exam"}</h2>
+                        <h2 className="card-title">{item.jobs?.exam_name ?? "Untitled Exam"}</h2>
                       )}
 
                       <p className="mt-2 text-slate-600 dark:text-slate-400">
-                        {item.jobs?.company_name ?? "Not specified"}
+                        {item.jobs?.conducting_body ?? "Not specified"}
                       </p>
                       <p className="text-sm text-slate-500 dark:text-slate-500">
                         {item.jobs?.location ?? "Not specified"}

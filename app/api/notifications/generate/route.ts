@@ -46,7 +46,7 @@ export async function POST() {
       // Get jobs with their application deadlines
       const { data: jobs } = await supabase
         .from("jobs")
-        .select("id, title, application_deadline, exam_date")
+        .select("id, exam_name, application_deadline, exam_date")
         .in("id", jobIds)
         .eq("is_active", true);
 
@@ -74,7 +74,7 @@ export async function POST() {
             job_id: job.id,
             notification_type: "closing_soon_3d",
             title: `Application closing in 3 days`,
-            message: `The application for ${job.title} closes in 3 days. Apply now to avoid missing the deadline.`,
+            message: `The application for ${job.exam_name} closes in 3 days. Apply now to avoid missing the deadline.`,
             notification_data: { deadline: job.application_deadline },
           });
           notificationCount++;
@@ -87,7 +87,7 @@ export async function POST() {
             job_id: job.id,
             notification_type: "closing_soon_1d",
             title: `Application closing tomorrow`,
-            message: `The application for ${job.title} closes tomorrow. Apply now to avoid missing the deadline.`,
+            message: `The application for ${job.exam_name} closes tomorrow. Apply now to avoid missing the deadline.`,
             notification_data: { deadline: job.application_deadline },
           });
           notificationCount++;

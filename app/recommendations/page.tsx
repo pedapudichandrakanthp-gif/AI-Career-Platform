@@ -13,7 +13,7 @@ import type { JobRow } from "@/types/database";
 
 type EligibilityJob = Pick<
   JobRow,
-  "id" | "title" | "company_name" | "location" | "category" | "job_type" | "salary_min" | "salary_max" | "apply_link"
+  "id" | "exam_name" | "conducting_body" | "location" | "category" | "job_type" | "salary_min" | "salary_max" | "apply_link"
   | "age_min" | "age_max" | "qualification_required" | "state_specific" | "required_state"
 >;
 
@@ -196,13 +196,13 @@ export default function RecommendationsPage() {
                       <div className="flex-1 p-6">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                           <div className="flex gap-4">
-                            <JobLogo companyName={item.job.company_name || ""} size="sm" />
+                            <JobLogo companyName={item.job.conducting_body || ""} size="sm" />
                             <div>
                               <h2 className="font-display text-xl font-semibold">
-                                {item.job.title ?? "Untitled Exam"}
+                                {item.job.exam_name ?? "Untitled Exam"}
                               </h2>
                               <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-                                {item.job.company_name}
+                                {item.job.conducting_body}
                               </p>
                               <div className="mt-2 flex flex-wrap gap-3 text-xs text-[var(--muted-foreground)]">
                                 <span className="flex items-center gap-1">

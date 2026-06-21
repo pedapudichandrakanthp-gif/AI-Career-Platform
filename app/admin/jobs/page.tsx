@@ -10,14 +10,14 @@ import { supabase } from "@/lib/supabase";
 import type { JobRow } from "@/types/database";
 
 interface JobFormData {
-  title: string;
-  company_name: string;
+  exam_name: string;
+  conducting_body: string;
   job_type: string;
   category: string;
   location: string;
   salary_min: string;
   salary_max: string;
-  qualification: string;
+  qualification_required: string;
   experience_required: string;
   skills: string;
   description: string;
@@ -27,14 +27,14 @@ interface JobFormData {
 }
 
 const emptyForm: JobFormData = {
-  title: "",
-  company_name: "",
+  exam_name: "",
+  conducting_body: "",
   job_type: "",
   category: "",
   location: "",
   salary_min: "",
   salary_max: "",
-  qualification: "",
+  qualification_required: "",
   experience_required: "",
   skills: "",
   description: "",
@@ -45,14 +45,14 @@ const emptyForm: JobFormData = {
 
 function jobToForm(job: JobRow): JobFormData {
   return {
-    title: job.title ?? "",
-    company_name: job.company_name ?? "",
+    exam_name: job.exam_name ?? "",
+    conducting_body: job.conducting_body ?? "",
     job_type: job.job_type ?? "",
     category: job.category ?? "",
     location: job.location ?? "",
     salary_min: job.salary_min?.toString() ?? "",
     salary_max: job.salary_max?.toString() ?? "",
-    qualification: job.qualification ?? "",
+    qualification_required: job.qualification_required ?? "",
     experience_required: job.experience_required?.toString() ?? "",
     skills: job.skills?.join(", ") ?? "",
     description: job.description ?? "",
@@ -64,14 +64,14 @@ function jobToForm(job: JobRow): JobFormData {
 
 function formToPayload(form: JobFormData, isCreate: boolean) {
   const payload: Record<string, unknown> = {
-    title: form.title || null,
-    company_name: form.company_name || null,
+    exam_name: form.exam_name || null,
+    conducting_body: form.conducting_body || null,
     job_type: form.job_type || null,
     category: form.category || null,
     location: form.location || null,
     salary_min: form.salary_min ? Number(form.salary_min) : null,
     salary_max: form.salary_max ? Number(form.salary_max) : null,
-    qualification: form.qualification || null,
+    qualification_required: form.qualification_required || null,
     experience_required: form.experience_required ? Number(form.experience_required) : null,
     skills: form.skills
       ? form.skills
@@ -272,10 +272,10 @@ export default function AdminJobsPage() {
                 {jobs.map((job) => (
                   <tr key={job.id} className="bg-white dark:bg-slate-950">
                     <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">
-                      {job.title ?? "Untitled"}
+                      {job.exam_name ?? "Untitled"}
                     </td>
                     <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
-                      {job.company_name ?? "—"}
+                      {job.conducting_body ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
                       {job.location ?? "—"}
@@ -297,7 +297,7 @@ export default function AdminJobsPage() {
                           type="button"
                           onClick={() => openEditModal(job)}
                           className="btn-secondary gap-1 px-3 py-1.5"
-                          aria-label={`Edit ${job.title}`}
+                          aria-label={`Edit ${job.exam_name}`}
                         >
                           <Pencil size={14} aria-hidden="true" />
                           Edit
@@ -331,7 +331,7 @@ export default function AdminJobsPage() {
                             type="button"
                             onClick={() => setDeleteConfirmId(job.id)}
                             className="btn-danger gap-1 px-3 py-1.5"
-                            aria-label={`Delete ${job.title}`}
+                            aria-label={`Delete ${job.exam_name}`}
                           >
                             <Trash2 size={14} aria-hidden="true" />
                             Delete
@@ -362,27 +362,27 @@ export default function AdminJobsPage() {
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                  <label className="label" htmlFor="title">
-                    Title *
+                  <label className="label" htmlFor="exam_name">
+                    Exam Name *
                   </label>
                   <input
-                    id="title"
+                    id="exam_name"
                     className="input"
                     required
-                    value={form.title}
-                    onChange={(e) => updateField("title", e.target.value)}
+                    value={form.exam_name}
+                    onChange={(e) => updateField("exam_name", e.target.value)}
                   />
                 </div>
 
                 <div>
-                  <label className="label" htmlFor="company_name">
-                    Company
+                  <label className="label" htmlFor="conducting_body">
+                    Conducting Body
                   </label>
                   <input
-                    id="company_name"
+                    id="conducting_body"
                     className="input"
-                    value={form.company_name}
-                    onChange={(e) => updateField("company_name", e.target.value)}
+                    value={form.conducting_body}
+                    onChange={(e) => updateField("conducting_body", e.target.value)}
                   />
                 </div>
 
@@ -449,14 +449,14 @@ export default function AdminJobsPage() {
                 </div>
 
                 <div>
-                  <label className="label" htmlFor="qualification">
-                    Qualification
+                  <label className="label" htmlFor="qualification_required">
+                    Qualification Required
                   </label>
                   <input
-                    id="qualification"
+                    id="qualification_required"
                     className="input"
-                    value={form.qualification}
-                    onChange={(e) => updateField("qualification", e.target.value)}
+                    value={form.qualification_required}
+                    onChange={(e) => updateField("qualification_required", e.target.value)}
                   />
                 </div>
 

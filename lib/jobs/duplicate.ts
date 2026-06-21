@@ -2,15 +2,15 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export async function isDuplicateJob(
   supabase: SupabaseClient,
-  title: string,
-  companyName: string,
+  examName: string,
+  conductingBody: string,
   location: string,
 ): Promise<boolean> {
   const { data } = await supabase
     .from("jobs")
     .select("id")
-    .ilike("title", title.trim())
-    .ilike("company_name", companyName.trim())
+    .ilike("exam_name", examName.trim())
+    .ilike("conducting_body", conductingBody.trim())
     .ilike("location", location.trim())
     .maybeSingle();
 

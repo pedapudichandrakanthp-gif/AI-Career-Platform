@@ -77,15 +77,15 @@ export async function importRemotiveJobs(supabase: SupabaseClient): Promise<Impo
 
       const { error } = await supabase.from("jobs").insert([
         {
-          title: cleaned.title,
+          exam_name: cleaned.title,
           clean_title: cleaned.clean_title,
-          company_name: cleaned.company_name || rawJob.company_name,
+          conducting_body: cleaned.company_name || rawJob.company_name,
           location: cleaned.location || rawJob.candidate_required_location,
           job_type: cleaned.job_type || rawJob.job_type,
           work_mode: cleaned.work_mode || "Remote",
           category: cleaned.category || rawJob.category,
           skills: cleaned.skills.length > 0 ? [...cleaned.skills] : null,
-          qualification: cleaned.qualification || null,
+          qualification_required: cleaned.qualification || null,
           experience_required: cleaned.experience_required,
           description: cleaned.description || rawJob.description,
           apply_link: rawJob.url,

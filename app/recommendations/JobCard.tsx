@@ -15,8 +15,8 @@ export default function JobCard({ job, onSave, onSaveJob, matchScore }: JobCardP
     <div className="border border-border rounded-lg p-5 bg-card hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
-          <h3 className="font-semibold text-base">{job.title}</h3>
-          <p className="text-sm text-muted-foreground mt-1">{job.company_name}</p>
+          <h3 className="font-semibold text-base">{job.exam_name}</h3>
+          <p className="text-sm text-muted-foreground mt-1">{job.conducting_body}</p>
           <div className="flex flex-wrap gap-2 mt-3">
             {job.location && (
               <span className="text-xs bg-secondary px-2 py-1 rounded">{job.location}</span>

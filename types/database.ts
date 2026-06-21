@@ -19,14 +19,14 @@ export interface UserProfileRow {
 
 export interface JobRow {
   id: string
-  title: string
-  company_name: string
+  exam_name: string
+  conducting_body: string
   job_type: string | null
   category: string | null
   location: string | null
   salary_min: number | null
   salary_max: number | null
-  qualification: string | null
+  qualification_required: string | null
   experience_required: number | null
   skills: string[] | null
   description: string | null
@@ -40,7 +40,6 @@ export interface JobRow {
   age_max: number | null
   category_relaxation: Record<string, number> | null
   vacancies_by_category: Record<string, number> | null
-  qualification_required: string | null
   state_specific: boolean | null
   required_state: string | null
   requires_disability: boolean | null
@@ -186,5 +185,5 @@ export interface CareerRoadmapRow {
 }
 
 export interface SavedJobWithJob extends Pick<SavedJobRow, "id" | "saved_at"> {
-  readonly jobs: Pick<JobRow, "id" | "title" | "company_name" | "location" | "category"> | null;
+  readonly jobs: Pick<JobRow, "id" | "exam_name" | "conducting_body" | "location" | "category"> | null;
 }

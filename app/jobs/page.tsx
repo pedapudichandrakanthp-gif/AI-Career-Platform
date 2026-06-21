@@ -60,7 +60,7 @@ async function JobsList() {
             <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <h2 className="text-xl font-bold font-display text-[var(--foreground)]">{job.exam_name || job.title}</h2>
+                  <h2 className="text-xl font-bold font-display text-[var(--foreground)]">{job.exam_name}</h2>
                   {getStatusBadge(job.status)}
                 </div>
                 <p className="font-semibold text-orange-600 dark:text-orange-500">{job.conducting_body}</p>

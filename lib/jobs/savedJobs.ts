@@ -2,7 +2,7 @@ import type { JobRow, SavedJobWithJob } from "@/types/database";
 
 export type SavedJobQueryJob = Pick<
   JobRow,
-  "id" | "title" | "company_name" | "location" | "category"
+  "id" | "exam_name" | "conducting_body" | "location" | "category"
 >;
 
 export interface SavedJobQueryRow {

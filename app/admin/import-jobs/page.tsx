@@ -73,26 +73,26 @@ export default function AdminImportJobsPage() {
       const { data: existing } = await supabase
         .from("jobs")
         .select("id")
-        .eq("title", preview.title)
-        .eq("company_name", preview.company_name)
+        .eq("exam_name", preview.title)
+        .eq("conducting_body", preview.company_name)
         .eq("location", preview.location)
         .maybeSingle();
 
       if (existing) {
-        setErrorMessage("A job with this title, company, and location already exists.");
+        setErrorMessage("A job with this exam name, conducting body, and location already exists.");
         setSaving(false);
         return;
       }
 
       const { error } = await supabase.from("jobs").insert([
         {
-          title: preview.title || null,
-          company_name: preview.company_name || null,
+          exam_name: preview.title || null,
+          conducting_body: preview.company_name || null,
           location: preview.location || null,
           job_type: preview.job_type || null,
           category: preview.category || null,
           skills: preview.skills.length > 0 ? [...preview.skills] : null,
-          qualification: preview.qualification || null,
+          qualification_required: preview.qualification || null,
           experience_required: preview.experience_required,
           description: preview.description || null,
           is_active: true,

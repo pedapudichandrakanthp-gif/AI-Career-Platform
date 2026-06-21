@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     // Get job details
     const { data: job } = await supabase
       .from("jobs")
-      .select("id, title")
+      .select("id, exam_name")
       .eq("id", jobId)
       .single();
 
@@ -53,8 +53,8 @@ export async function POST(request: Request) {
         user_id: savedJob.user_id,
         job_id: jobId,
         notification_type: "result_announced",
-        title: `Result announced for ${job.title}`,
-        message: `The result for ${job.title} has been announced${resultDate ? ` on ${resultDate}` : ""}. Check the official website for details.`,
+        title: `Result announced for ${job.exam_name}`,
+        message: `The result for ${job.exam_name} has been announced${resultDate ? ` on ${resultDate}` : ""}. Check the official website for details.`,
         notification_data: { resultDate },
       });
       notificationCount++;

@@ -53,7 +53,7 @@ export async function generateAndStoreMatchScoresForUser(
       userExperienceYears: profile.experience_years,
       userLocation: profile.location,
       jobSkills: job.skills ?? [],
-      jobQualification: job.qualification,
+      jobQualification: job.qualification_required,
       jobExperienceRequired: job.experience_required,
       jobLocation: job.location,
     });

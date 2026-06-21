@@ -202,10 +202,10 @@ export default function JobDetailsPage() {
         },
         body: JSON.stringify({
           jobId: job.id,
-          title: job.title,
+          title: job.exam_name,
           description: job.description,
           skills: job.skills,
-          qualification: job.qualification,
+          qualification: job.qualification_required,
           experience_required: job.experience_required,
         }),
       });
@@ -251,10 +251,10 @@ export default function JobDetailsPage() {
         },
         body: JSON.stringify({
           jobId: job.id,
-          title: job.title,
+          title: job.exam_name,
           description: job.description,
           skills: job.skills,
-          qualification: job.qualification_required || job.qualification,
+          qualification: job.qualification_required,
           experience_required: job.experience_required,
           prompt: "Generate government exam insights including: 1) Exam Summary, 2) Preparation Strategy, 3) Recommended Resources",
         }),
@@ -340,7 +340,7 @@ export default function JobDetailsPage() {
           user_id: user.id,
           job_id: job.id,
           notification_type: "new_exam",
-          title: `Subscribed to ${job.title}`,
+          title: `Subscribed to ${job.exam_name}`,
           message: "You will receive notifications about this exam.",
           is_read: false,
         });
@@ -391,16 +391,16 @@ export default function JobDetailsPage() {
 
         {/* Section 1: Exam Overview */}
         <article className="card mb-6">
-          <h1 className="page-title">{job.title ?? "Untitled Exam"}</h1>
+          <h1 className="page-title">{job.exam_name ?? "Untitled Exam"}</h1>
           <p className="mt-2 text-slate-600 dark:text-slate-400">
-            {job.company_name ?? "Government Exam"}
+            {job.conducting_body ?? "Government Exam"}
           </p>
 
           <dl className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <dt className="text-sm font-medium text-slate-500 dark:text-slate-400">Conducting Body</dt>
               <dd className="mt-1 text-slate-900 dark:text-white">
-                {job.company_name ?? "Not specified"}
+                {job.conducting_body ?? "Not specified"}
               </dd>
             </div>
             <div>
@@ -418,7 +418,7 @@ export default function JobDetailsPage() {
             <div>
               <dt className="text-sm font-medium text-slate-500 dark:text-slate-400">Qualification Required</dt>
               <dd className="mt-1 text-slate-900 dark:text-white">
-                {job.qualification_required ?? job.qualification ?? "Not specified"}
+                {job.qualification_required ?? "Not specified"}
               </dd>
             </div>
             <div>

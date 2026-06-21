@@ -68,8 +68,8 @@ export default function JobCard({ job, userSkills, onSaveJob }: JobCardProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          jobTitle: job.title ?? "this position",
-          company: job.company_name ?? "your company",
+          jobTitle: job.exam_name ?? "this position",
+          company: job.conducting_body ?? "your company",
           jobDescription: job.description ?? "",
           userProfile: {
             summary: "A passionate professional",
@@ -97,7 +97,7 @@ export default function JobCard({ job, userSkills, onSaveJob }: JobCardProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          jobTitle: job.title ?? "this position",
+          jobTitle: job.exam_name ?? "this position",
           jobDescription: job.description ?? "",
           userSkills: userSkills.join(", "),
         }),
@@ -126,8 +126,8 @@ export default function JobCard({ job, userSkills, onSaveJob }: JobCardProps) {
       const { error } = await supabase.from("applications").insert([{
         user_id: user.id,
         job_id: job.id,
-        company: job.company_name,
-        title: job.title ?? "Untitled Job",
+        company: job.conducting_body,
+        title: job.exam_name ?? "Untitled Job",
         status: "applied"
       }]);
 
@@ -146,17 +146,17 @@ export default function JobCard({ job, userSkills, onSaveJob }: JobCardProps) {
   return (
     <article className="card-interactive">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-        <JobLogo company_name={job.company_name || ""} />
+        <JobLogo company_name={job.conducting_body || ""} />
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <Link href={`/jobs/${job.id}`}>
                 <h2 className="font-display text-lg font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400">
-              {job.title ?? "Untitled Job"}
+              {job.exam_name ?? "Untitled Job"}
                 </h2>
               </Link>
-              <p className="mt-1 text-sm text-[var(--muted-foreground)]">{job.company_name}</p>
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">{job.conducting_body}</p>
             </div>
             <MatchBadge score={matchPercentage} />
           </div>
