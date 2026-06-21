@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import {
   Award,
   Briefcase,
-  DollarSign,
   GraduationCap,
   MapPin,
   Save,
@@ -91,7 +90,7 @@ export default function ProfilePage() {
         return;
       }
 
-      const { data, error } = await supabase.from("users").select("*").eq("id", user.id).single();
+      const { data, error } = await supabase.from("user_profiles").select("*").eq("user_id", user.id).single();
 
       if (error && error.code !== "PGRST116") {
         console.error("Error fetching profile:", error.message);
@@ -100,8 +99,8 @@ export default function ProfilePage() {
       if (data) {
         setFullName(data.full_name || "");
         setPhone(data.phone || "");
-        setLocation(data.location || "");
-        setEducation(data.education || "");
+        setLocation(data.current_state || "");
+        setEducation(data.highest_qualification || "");
         setDegree(data.degree || "");
         setSkills(formatSkillsForInput(data.skills));
         setExperienceYears(data.experience_years || "");
@@ -142,12 +141,13 @@ export default function ProfilePage() {
       if (!user) return;
 
       const { error } = await supabase
-        .from("users")
-        .update({
+        .from("user_profiles")
+        .upsert({
+          user_id: user.id,
           full_name: fullName,
           phone,
-          location,
-          education,
+          current_state: location,
+          highest_qualification: education,
           degree,
           skills: parseCommaList(skills),
           experience_years: experienceYears === "" ? 0 : Number(experienceYears),
@@ -155,8 +155,10 @@ export default function ProfilePage() {
           certifications: parseCommaList(certifications).length > 0 ? parseCommaList(certifications) : null,
           preferred_job_type: workMode || preferredJobType || null,
           expected_salary: expectedSalary === "" ? 0 : Number(expectedSalary),
-        })
-        .eq("id", user.id);
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id'
+        });
 
       if (error) {
         setMessage(`Error: ${error.message}`);
@@ -188,9 +190,9 @@ export default function ProfilePage() {
         <section className="page-container max-w-3xl">
           <div>
             <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Your Profile</p>
-            <h1 className="page-title mt-1">Career Profile</h1>
+            <h1 className="page-title mt-1">Government Exam Profile</h1>
             <p className="mt-2 text-[var(--muted-foreground)]">
-              Keep your profile updated for better AI job matching on AvsarGrid.
+              Keep your profile updated for better AI eligibility analysis on AvsarGrid.
             </p>
           </div>
 
@@ -271,10 +273,10 @@ export default function ProfilePage() {
               />
             </SectionCard>
 
-            <SectionCard icon={MapPin} title="Career Preferences" description="Job type, work mode, and salary">
+            <SectionCard icon={MapPin} title="Exam Preferences" description="Exam type and preferences">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="label" htmlFor="preferredJobType">Job Type</label>
+                  <label className="label" htmlFor="preferredJobType">Exam Preference</label>
                   <select
                     id="preferredJobType"
                     className="input"
@@ -282,39 +284,12 @@ export default function ProfilePage() {
                     onChange={(e) => setPreferredJobType(e.target.value)}
                   >
                     <option value="">Select...</option>
-                    <option value="Full-time">Full-time</option>
-                    <option value="Part-time">Part-time</option>
-                    <option value="Contract">Contract</option>
-                    <option value="Internship">Internship</option>
+                    <option value="SSC">SSC Exams</option>
+                    <option value="Banking">Banking Exams</option>
+                    <option value="Railway">Railway Exams</option>
+                    <option value="UPSC">UPSC Exams</option>
+                    <option value="State PSC">State PSC Exams</option>
                   </select>
-                </div>
-                <div>
-                  <label className="label" htmlFor="workMode">Work Mode</label>
-                  <select
-                    id="workMode"
-                    className="input"
-                    value={workMode}
-                    onChange={(e) => setWorkMode(e.target.value)}
-                  >
-                    <option value="">Select...</option>
-                    <option value="Remote">Remote</option>
-                    <option value="Hybrid">Hybrid</option>
-                    <option value="Onsite">Onsite</option>
-                  </select>
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="label" htmlFor="expectedSalary">
-                    <DollarSign size={14} className="mr-1 inline" />
-                    Expected Salary (annual)
-                  </label>
-                  <input
-                    id="expectedSalary"
-                    type="number"
-                    className="input"
-                    placeholder="e.g. 80000"
-                    value={expectedSalary}
-                    onChange={(e) => setExpectedSalary(e.target.value === "" ? "" : Number(e.target.value))}
-                  />
                 </div>
               </div>
             </SectionCard>

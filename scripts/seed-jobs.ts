@@ -28,13 +28,13 @@ async function seed() {
     return
   }
 
-  const data = await res.json()
+  const data = await res.json() as { jobs: Record<string, unknown>[] }
   const jobs = data.jobs || []
   console.log('Fetched', jobs.length, 'jobs from Remotive')
 
   const rows = jobs
-    .filter((j: any) => !!j.title) // Skip jobs without a title
-    .map((j: any) => ({
+    .filter((j: Record<string, unknown>) => !!j.title) // Skip jobs without a title
+    .map((j: Record<string, unknown>) => ({
       title: j.title || 'Untitled',
       company_name: j.company_name || 'Unknown Company',
       job_type: j.job_type || 'full_time',
@@ -66,7 +66,7 @@ async function seed() {
   console.log('Sample row:', JSON.stringify(rows[0], null, 2))
 
   console.log('\nPreparing to insert the following jobs:')
-  rows.forEach((r: any, idx: number) => {
+  rows.forEach((r: Record<string, unknown>, idx: number) => {
     console.log(`[${idx + 1}] Title: ${r.title} | Link: ${r.apply_link}`)
   })
 

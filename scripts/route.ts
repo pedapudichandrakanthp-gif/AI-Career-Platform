@@ -9,9 +9,9 @@ export async function GET() {
     )
 
     const res = await fetch('https://remotive.com/api/remote-jobs?limit=100')
-    const { jobs } = await res.json()
+    const { jobs } = await res.json() as { jobs: Record<string, unknown>[] }
 
-    const rows = jobs.map((j: any) => ({
+    const rows = jobs.map((j: Record<string, unknown>) => ({
       title: j.title || 'Untitled',
       company_name: j.company_name || 'Unknown Company',
       job_type: j.job_type || 'full_time',

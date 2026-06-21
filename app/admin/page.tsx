@@ -104,10 +104,10 @@ export default function AdminDashboardPage() {
 
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/admin/jobs" className="btn-primary">
-              Job Management
+              Exam Management
             </Link>
             <Link href="/admin/import-jobs" className="btn-secondary">
-              AI Job Import
+              AI Exam Import
             </Link>
             <button
               type="button"

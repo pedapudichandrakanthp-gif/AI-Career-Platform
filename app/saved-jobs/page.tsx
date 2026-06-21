@@ -60,7 +60,7 @@ export default function SavedJobsPage() {
       return;
     }
 
-    alert("Job Removed");
+    alert("Exam Removed");
     fetchSavedJobs();
   };
 
@@ -68,16 +68,16 @@ export default function SavedJobsPage() {
     <ProtectedRoute>
       <main className="page-main">
         <section className="page-container">
-          <h1 className="page-title">Saved Jobs</h1>
+          <h1 className="page-title">Saved Exams</h1>
           <p className="mt-2 text-base text-slate-600 dark:text-slate-400">
-            Jobs you have saved for later review.
+            Exams you have saved for later review.
           </p>
 
           {savedJobs.length === 0 ? (
             <div className="text-center py-16">
-              <p className="text-muted-foreground">No saved jobs yet.</p>
+              <p className="text-muted-foreground">No saved exams yet.</p>
               <Link href="/jobs" className="mt-4 inline-block underline">
-                Browse Jobs
+                Browse Exams
               </Link>
             </div>
           ) : (
@@ -89,11 +89,11 @@ export default function SavedJobsPage() {
                       {item.jobs?.id ? (
                         <Link href={`/jobs/${item.jobs.id}`}>
                           <h2 className="card-title text-blue-600 hover:text-blue-500 dark:text-blue-400">
-                            {item.jobs.title ?? "Untitled Job"}
+                            {item.jobs.title ?? "Untitled Exam"}
                           </h2>
                         </Link>
                       ) : (
-                        <h2 className="card-title">{item.jobs?.title ?? "Untitled Job"}</h2>
+                        <h2 className="card-title">{item.jobs?.title ?? "Untitled Exam"}</h2>
                       )}
 
                       <p className="mt-2 text-slate-600 dark:text-slate-400">

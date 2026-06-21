@@ -35,6 +35,20 @@ export interface JobRow {
   is_active: boolean
   created_at: string
   updated_at: string
+  // Government platform fields
+  age_min: number | null
+  age_max: number | null
+  category_relaxation: Record<string, number> | null
+  vacancies_by_category: Record<string, number> | null
+  qualification_required: string | null
+  state_specific: boolean | null
+  required_state: string | null
+  requires_disability: boolean | null
+  requires_ex_serviceman: boolean | null
+  gender_required: string | null
+  selection_process: string[] | null
+  syllabus_url: string | null
+  syllabus: Record<string, unknown> | null
 }
 
 export interface ResumeRow {

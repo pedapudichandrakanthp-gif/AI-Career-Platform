@@ -51,7 +51,7 @@ async function seed() {
 
       if (results.length === 0) continue
 
-      const rows = results.map((j: any) => ({
+      const rows = results.map((j: Record<string, unknown>) => ({
         title: j.title || 'Untitled',
         company_name: j.company?.display_name || 'Unknown Company',
         location: j.location?.display_name || 'India',

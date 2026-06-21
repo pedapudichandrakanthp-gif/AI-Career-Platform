@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { AlertCircle, Bell, CheckCircle2, Clock, Sparkles } from "lucide-react";
+import { Clock, Sparkles } from "lucide-react";
 
 export default async function DashboardPage() {
   return (
@@ -52,7 +52,7 @@ async function DashboardContent() {
 
   // Fetch all dashboard data concurrently
   const [profileRes, applicationsRes, jobsRes] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', user.id).single(),
+    supabase.from('user_profiles').select('*').eq('user_id', user.id).single(),
     supabase.from('applications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
     supabase.from('jobs').select('*').eq('is_active', true)
   ]);
@@ -99,7 +99,7 @@ async function DashboardContent() {
     
     if (job.age_min && profile?.age && profile.age < job.age_min) isEligible = false;
     if (profile?.age && profile.age > maxAge) isEligible = false;
-    if (job.state && job.state !== 'Central' && profile?.state && job.state !== profile.state) isEligible = false;
+    if (job.state && job.state !== 'Central' && profile?.current_state && job.state !== profile.current_state) isEligible = false;
     
     if (isEligible) eligibleJobsCount++;
 
@@ -115,26 +115,13 @@ async function DashboardContent() {
   urgentJobs.sort((a, b) => new Date(a.apply_end_date || "").getTime() - new Date(b.apply_end_date || "").getTime());
 
   // Profile Completion Logic
-  const requiredFields = ['full_name', 'date_of_birth', 'gender', 'category', 'state', 'highest_qualification'];
-  const missingFields = requiredFields.filter(f => !profile?.[f]);
-  const completionPercent = Math.round(((requiredFields.length - missingFields.length) / requiredFields.length) * 100);
+  const requiredFields = ['full_name', 'date_of_birth', 'gender', 'category', 'current_state', 'highest_qualification'];
+  const missingFields = requiredFields.filter(f => {
+    const value = profile?.[f as keyof typeof profile];
+    return value === null || value === undefined || value === '';
+  });
+  const completionPercent = profile ? Math.round(((requiredFields.length - missingFields.length) / requiredFields.length) * 100) : 0;
   const formatField = (f: string) => f.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-
-  // Mock active tasks for demonstration (Assuming fetched from active study plans logic)
-  const mockTasks = [
-    { id: '1', subject: 'Quantitative Aptitude', topic: 'Percentages & Ratios', duration: '45 mins', completed: true },
-    { id: '2', subject: 'Reasoning', topic: 'Coding-Decoding', duration: '30 mins', completed: false },
-    { id: '3', subject: 'General Awareness', topic: 'Current Affairs - July', duration: '20 mins', completed: false },
-    { id: '4', subject: 'English', topic: 'Reading Comprehension', duration: '40 mins', completed: false },
-  ];
-  const completedCount = mockTasks.filter(t => t.completed).length;
-
-  // Mock Upcoming Notifications
-  const upcoming = [
-    { name: 'IBPS PO 2026', expected: 'August 2026' },
-    { name: 'RRB NTPC 2026', expected: 'September 2026' },
-    { name: 'SSC CHSL 2026', expected: 'October 2026' },
-  ];
 
   // Kanban Columns
   const COLUMNS = ["Saved", "Applied", "Preparing", "Result Awaited", "Selected"];
@@ -165,19 +152,6 @@ async function DashboardContent() {
 
     await sb.from('applications').update({ status }).eq('id', appId);
     revalidatePath('/dashboard');
-  }
-
-  async function toggleTask(formData: FormData) {
-    "use server";
-    // Placeholder for actual study_tracker save/toggle logic
-    console.log("Toggle task:", formData.get("taskId"));
-    revalidatePath('/dashboard');
-  }
-
-  async function setAlert(formData: FormData) {
-    "use server";
-    // Placeholder for alerting mechanism
-    console.log("Alert set for:", formData.get("examName"));
   }
 
   return (
@@ -280,32 +254,11 @@ async function DashboardContent() {
           <h2 className="text-xl font-bold flex items-center gap-2 mb-6 text-[var(--foreground)]">
             Today&apos;s Study Tasks
           </h2>
-          <div className="mb-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl">
-            <div className="flex justify-between text-sm mb-2 font-semibold">
-              <span className="text-[var(--muted-foreground)]">Daily Progress</span>
-              <span className="text-green-600 dark:text-green-400">{completedCount}/{mockTasks.length} tasks completed</span>
-            </div>
-            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-              <div className="bg-green-500 h-2 rounded-full transition-all duration-500" style={{width: `${(completedCount/mockTasks.length)*100}%`}}></div>
-            </div>
-          </div>
-          <div className="space-y-3">
-            {mockTasks.map(task => (
-              <form key={task.id} action={toggleTask} className={`flex items-center gap-3 p-3.5 rounded-xl transition-all border ${task.completed ? 'bg-slate-50 border-transparent dark:bg-slate-800/30' : 'bg-white border-slate-200 hover:border-blue-300 dark:bg-[var(--surface)] dark:border-slate-700 shadow-sm'}`}>
-                <input type="hidden" name="taskId" value={task.id} />
-                <button type="submit" className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center border-2 transition-colors ${task.completed ? 'bg-green-500 border-green-500 text-white' : 'border-slate-300 dark:border-slate-600 hover:border-green-400'}`}>
-                  {task.completed && <CheckCircle2 size={14} className="stroke-[3]" />}
-                </button>
-                <div className="flex-1">
-                  <p className={`text-sm font-bold ${task.completed ? 'line-through text-slate-400 dark:text-slate-500' : 'text-[var(--foreground)]'}`}>
-                    {task.topic}
-                  </p>
-                  <p className="text-xs font-medium text-[var(--muted-foreground)] mt-0.5">
-                    {task.subject} • {task.duration}
-                  </p>
-                </div>
-              </form>
-            ))}
+          <div className="text-center py-8 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
+            <p className="text-sm font-medium text-[var(--muted-foreground)]">No active study tasks</p>
+            <Link href="/jobs" className="mt-4 inline-block btn-primary text-sm">
+              Start Exam Preparation
+            </Link>
           </div>
         </section>
 
@@ -315,23 +268,8 @@ async function DashboardContent() {
             <h2 className="text-xl font-bold flex items-center gap-2 mb-6 text-[var(--foreground)]">
               Coming Soon
             </h2>
-            <div className="space-y-5">
-              {upcoming.map(u => (
-                <div key={u.name} className="flex items-center justify-between pb-5 border-b border-[var(--border)] last:border-0 last:pb-0">
-                  <div>
-                    <h3 className="font-bold text-sm text-[var(--foreground)]">{u.name}</h3>
-                    <p className="text-xs font-medium text-[var(--muted-foreground)] mt-1 flex items-center gap-1.5">
-                      <AlertCircle size={14}/> Expected: {u.expected}
-                    </p>
-                  </div>
-                  <form action={setAlert}>
-                    <input type="hidden" name="examName" value={u.name} />
-                    <button type="submit" className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5 shadow-sm">
-                      <Bell size={14} /> Set Alert
-                    </button>
-                  </form>
-                </div>
-              ))}
+            <div className="text-center py-8 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
+              <p className="text-sm font-medium text-[var(--muted-foreground)]">No upcoming exam notifications</p>
             </div>
           </section>
 
@@ -343,7 +281,7 @@ async function DashboardContent() {
                   Profile Completion
                 </h2>
                 <p className="text-sm font-medium text-indigo-700/80 dark:text-indigo-400/80 mt-1">
-                  Complete your profile to see more eligible jobs
+                  Complete your profile to see more eligible exams
                 </p>
               </div>
               <div className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">
