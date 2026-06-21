@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 
 import { Pencil, Plus, Trash2 } from "lucide-react";
 
@@ -236,9 +237,9 @@ export default function AdminJobsPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <a href="/admin/import-jobs" className="btn-secondary">
+            <Link href="/admin/import-jobs" className="btn-secondary">
               Import with AI
-            </a>
+            </Link>
             <button type="button" onClick={openCreateModal} className="btn-primary gap-2">
               <Plus size={18} aria-hidden="true" />
               Create Job

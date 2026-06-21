@@ -1,117 +1,212 @@
-import { Metadata } from "next";
-import { Award, CheckCircle2, Sparkles } from "lucide-react";
-import { createServiceClient } from "@/lib/supabase/server";
+import Link from "next/link";
+import { ArrowRight, BookOpen, Brain, FileText, Sparkles, Target } from "lucide-react";
 
-type Props = {
-  params: Promise<{ username: string }>;
-};
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { username } = await params;
-  const supabase = createServiceClient();
-  
-  const { data: user } = await supabase
-    .from("users")
-    .select("full_name")
-    .eq("username", username)
-    .eq("profile_public", true)
-    .single();
-
-  if (!user) {
-    return { title: "Private Profile | AvsarGrid" };
-  }
-
-  return {
-    title: `${user.full_name}'s Resume Score | AvsarGrid`,
-    description: `Check out ${user.full_name}'s ATS Score and top skills verified by AvsarGrid AI.`,
-    openGraph: {
-      title: `${user.full_name}'s Resume Score`,
-      description: `Verified ATS Score and AI analysis for ${user.full_name}.`,
-    },
-  };
-}
-
-export default async function ScorePage({ params }: Props) {
-  const { username } = await params;
-  const supabase = createServiceClient();
-
-  const { data: user } = await supabase
-    .from("users")
-    .select("*")
-    .eq("username", username)
-    .eq("profile_public", true)
-    .single();
-
-  if (!user) {
-    return (
-      <main className="flex min-h-[80vh] items-center justify-center p-4">
-        <div className="card text-center max-w-md w-full py-12">
-          <h1 className="text-xl font-semibold mb-2">This profile is private</h1>
-          <p className="text-[var(--muted-foreground)]">The user has not made their resume score public.</p>
-        </div>
-      </main>
-    );
-  }
-
-  const { data: analysis } = await supabase
-    .from("resume_analysis")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .single();
-
-  const atsScore = analysis?.ats_score || 0;
-  const topSkills = analysis?.skills_found?.slice(0, 8) || user.skills?.slice(0, 8) || [];
-
+export default function HomePage() {
   return (
-    <main className="flex min-h-[80vh] items-center justify-center p-4 bg-[var(--background)]">
-      <div className="w-full max-w-2xl rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-blue-600/20 to-purple-600/20" />
-        
-        <div className="relative flex flex-col items-center text-center">
-          <div className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
-            <Sparkles size={14} />
-            Analyzed by AvsarGrid AI
-          </div>
-          
-          <h1 className="font-display text-3xl font-bold text-[var(--foreground)] mt-2">
-            {user.full_name}
-          </h1>
-          <p className="text-lg text-[var(--muted-foreground)] mt-1">
-            {user.role || "Professional"}
-          </p>
-
-          <div className="my-10 flex flex-col items-center justify-center relative">
-             <div className="h-40 w-40 rounded-full border-[8px] border-blue-500 flex items-center justify-center bg-[var(--background)] shadow-xl z-10">
-               <span className="text-6xl font-black text-[var(--foreground)]">{atsScore}</span>
-             </div>
-             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-40 w-40 bg-blue-500/30 blur-2xl rounded-full" />
-             <p className="mt-4 font-semibold text-lg text-blue-600 dark:text-blue-400 flex items-center gap-2">
-               <Award size={20} />
-               Verified ATS Score
-             </p>
-          </div>
-
-          <div className="w-full">
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-4">
-              Top Verified Skills
-            </h3>
-            <div className="flex flex-wrap justify-center gap-2">
-              {topSkills.length > 0 ? (
-                topSkills.map((skill: string, i: number) => (
-                  <span key={i} className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-sm font-medium">
-                    <CheckCircle2 size={14} className="text-green-500" />
-                    {skill}
-                  </span>
-                ))
-              ) : (
-                <span className="text-[var(--muted-foreground)] text-sm">No skills extracted yet.</span>
-              )}
+    <main className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 text-white">
+        <div className="absolute inset-0 bg-black/10" />
+        <div className="relative page-container max-w-6xl mx-auto px-4 py-20 sm:py-32">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-sm font-medium backdrop-blur-sm mb-6">
+              <Sparkles size={16} />
+              AI-Powered Government Exam Platform
+            </div>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold font-display mb-6">
+              Crack Government Exams with AI
+            </h1>
+            <p className="text-lg sm:text-xl text-blue-100 max-w-2xl mx-auto mb-10">
+              Your intelligent companion for government exam preparation. Get personalized study plans, eligibility checks, and AI-powered insights.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/register" className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-8 py-4 text-sm font-bold text-blue-700 hover:bg-blue-50 transition-all shadow-lg">
+                Get Started Free
+                <ArrowRight size={18} />
+              </Link>
+              <Link href="/jobs" className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-white/30 px-8 py-4 text-sm font-bold text-white hover:bg-white/10 transition-all backdrop-blur-sm">
+                Browse Exams
+              </Link>
             </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="page-container max-w-6xl mx-auto px-4 py-20">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl sm:text-4xl font-bold font-display text-slate-900 dark:text-white mb-4">
+            Everything You Need to Succeed
+          </h2>
+          <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+            Comprehensive tools and resources to help you prepare for government exams efficiently.
+          </p>
+        </div>
+
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+          {/* Government Exams */}
+          <div className="card p-8 hover:shadow-xl transition-shadow">
+            <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-6">
+              <BookOpen size={24} className="text-blue-600 dark:text-blue-400" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
+              Government Exams
+            </h3>
+            <p className="text-slate-600 dark:text-slate-400 mb-4">
+              Browse and filter through thousands of government exams from SSC, Banking, Railway, UPSC, and State PSCs.
+            </p>
+            <Link href="/jobs" className="text-blue-600 dark:text-blue-400 font-medium flex items-center gap-2 hover:underline">
+              Explore Exams
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+
+          {/* AI Eligibility */}
+          <div className="card p-8 hover:shadow-xl transition-shadow">
+            <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mb-6">
+              <Brain size={24} className="text-purple-600 dark:text-purple-400" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
+              AI Eligibility Check
+            </h3>
+            <p className="text-slate-600 dark:text-slate-400 mb-4">
+              Instantly check your eligibility for any government exam based on age, qualification, category, and other criteria.
+            </p>
+            <Link href="/recommendations" className="text-purple-600 dark:text-purple-400 font-medium flex items-center gap-2 hover:underline">
+              Check Eligibility
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+
+          {/* Study Plans */}
+          <div className="card p-8 hover:shadow-xl transition-shadow">
+            <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-6">
+              <Target size={24} className="text-green-600 dark:text-green-400" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
+              Personalized Study Plans
+            </h3>
+            <p className="text-slate-600 dark:text-slate-400 mb-4">
+              Get AI-generated study plans tailored to your exam type, available time, and preparation level.
+            </p>
+            <Link href="/jobs" className="text-green-600 dark:text-green-400 font-medium flex items-center gap-2 hover:underline">
+              Generate Plan
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+
+          {/* Previous Papers */}
+          <div className="card p-8 hover:shadow-xl transition-shadow">
+            <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mb-6">
+              <FileText size={24} className="text-orange-600 dark:text-orange-400" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
+              Previous Year Papers
+            </h3>
+            <p className="text-slate-600 dark:text-slate-400 mb-4">
+              Access previous year question papers with solutions to practice and understand exam patterns.
+            </p>
+            <Link href="/jobs" className="text-orange-600 dark:text-orange-400 font-medium flex items-center gap-2 hover:underline">
+              View Papers
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+
+          {/* AI Exam Insights */}
+          <div className="card p-8 hover:shadow-xl transition-shadow">
+            <div className="w-12 h-12 rounded-xl bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center mb-6">
+              <Sparkles size={24} className="text-pink-600 dark:text-pink-400" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
+              AI Exam Insights
+            </h3>
+            <p className="text-slate-600 dark:text-slate-400 mb-4">
+              Get AI-powered analysis of exam patterns, important topics, and recommended resources.
+            </p>
+            <Link href="/jobs" className="text-pink-600 dark:text-pink-400 font-medium flex items-center gap-2 hover:underline">
+              Get Insights
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+
+          {/* Notifications */}
+          <div className="card p-8 hover:shadow-xl transition-shadow">
+            <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mb-6">
+              <Sparkles size={24} className="text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
+              Smart Notifications
+            </h3>
+            <p className="text-slate-600 dark:text-slate-400 mb-4">
+              Never miss important dates with automated notifications for exam deadlines, admit cards, and results.
+            </p>
+            <Link href="/register" className="text-indigo-600 dark:text-indigo-400 font-medium flex items-center gap-2 hover:underline">
+              Enable Alerts
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="bg-gradient-to-br from-slate-900 to-slate-800 text-white py-20">
+        <div className="page-container max-w-4xl mx-auto px-4 text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold font-display mb-6">
+            Ready to Start Your Preparation?
+          </h2>
+          <p className="text-lg text-slate-300 mb-10">
+            Join thousands of aspirants who are using AvsarGrid to crack their dream government exams.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/register" className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-8 py-4 text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg">
+              Create Free Account
+              <ArrowRight size={18} />
+            </Link>
+            <Link href="/login" className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-white/30 px-8 py-4 text-sm font-bold text-white hover:bg-white/10 transition-all">
+              Sign In
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-slate-100 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-12">
+        <div className="page-container max-w-6xl mx-auto px-4">
+          <div className="grid md:grid-cols-4 gap-8">
+            <div>
+              <h4 className="font-bold text-slate-900 dark:text-white mb-4">AvsarGrid</h4>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                AI-powered government exam preparation platform helping aspirants achieve their dreams.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-900 dark:text-white mb-4">Quick Links</h4>
+              <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                <li><Link href="/jobs" className="hover:text-blue-600 dark:hover:text-blue-400">Government Exams</Link></li>
+                <li><Link href="/recommendations" className="hover:text-blue-600 dark:hover:text-blue-400">Eligibility Check</Link></li>
+                <li><Link href="/saved-jobs" className="hover:text-blue-600 dark:hover:text-blue-400">Saved Exams</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-900 dark:text-white mb-4">Resources</h4>
+              <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                <li><Link href="/privacy" className="hover:text-blue-600 dark:hover:text-blue-400">Privacy Policy</Link></li>
+                <li><Link href="/terms" className="hover:text-blue-600 dark:hover:text-blue-400">Terms of Service</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-900 dark:text-white mb-4">Account</h4>
+              <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                <li><Link href="/login" className="hover:text-blue-600 dark:hover:text-blue-400">Sign In</Link></li>
+                <li><Link href="/register" className="hover:text-blue-600 dark:hover:text-blue-400">Create Account</Link></li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800 text-center text-sm text-slate-600 dark:text-slate-400">
+            © 2026 AvsarGrid. All rights reserved.
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }
