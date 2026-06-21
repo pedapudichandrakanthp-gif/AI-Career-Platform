@@ -64,7 +64,7 @@ async function DashboardContent() {
     title?: string;
     exam_name?: string;
     conducting_body?: string;
-    apply_end_date?: string;
+    application_deadline?: string;
     age_max?: number;
     age_min?: number;
     state?: string;
@@ -104,15 +104,15 @@ async function DashboardContent() {
     if (isEligible) eligibleJobsCount++;
 
     // Urgent Deadline Check
-    if (job.apply_end_date) {
-      const days = getDaysRemaining(job.apply_end_date);
+    if (job.application_deadline) {
+      const days = getDaysRemaining(job.application_deadline);
       if (days >= 0 && days <= 7) {
         urgentJobs.push(job);
       }
     }
   });
 
-  urgentJobs.sort((a, b) => new Date(a.apply_end_date || "").getTime() - new Date(b.apply_end_date || "").getTime());
+  urgentJobs.sort((a, b) => new Date(a.application_deadline || "").getTime() - new Date(b.application_deadline || "").getTime());
 
   // Profile Completion Logic
   const requiredFields = ['full_name', 'date_of_birth', 'gender', 'category', 'current_state', 'highest_qualification'];
@@ -186,7 +186,7 @@ async function DashboardContent() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {urgentJobs.map(job => {
-              const daysLeft = getDaysRemaining(job.apply_end_date || "");
+              const daysLeft = getDaysRemaining(job.application_deadline || "");
               const isRed = daysLeft <= 3;
               return (
                 <div key={job.id} className={`card p-5 border-l-4 ${isRed ? 'border-l-red-500 bg-red-50/30 dark:bg-red-900/10' : 'border-l-orange-400'}`}>

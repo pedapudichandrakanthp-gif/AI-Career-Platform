@@ -69,7 +69,7 @@ export default function RecommendationsPage() {
         .from("jobs")
         .select("*")
         .eq("is_active", true)
-        .order("apply_end_date", { ascending: true }),
+        .order("application_deadline", { ascending: true }),
       supabase.from("saved_jobs").select("job_id").eq("user_id", user.id),
     ]);
 

@@ -46,7 +46,7 @@ async function JobsList() {
     .from("jobs")
     .select("*")
     .eq("is_active", true)
-    .order("apply_end_date", { ascending: true, nullsFirst: false });
+    .order("application_deadline", { ascending: true, nullsFirst: false });
 
   if (error) {
     return <p className="text-red-500">Error loading jobs: {error.message}</p>;
@@ -76,7 +76,7 @@ async function JobsList() {
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-[var(--muted-foreground)] flex items-center gap-1.5"><Calendar size={14} /> Apply End</span>
-                <span className="font-semibold">{formatDate(job.apply_end_date)}</span>
+                <span className="font-semibold">{formatDate(job.application_deadline)}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-[var(--muted-foreground)] flex items-center gap-1.5"><Calendar size={14} /> Exam Date</span>
