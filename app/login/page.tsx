@@ -61,7 +61,7 @@ export default function LoginPage() {
   return (
     <AuthShell
       title="Welcome back"
-      subtitle="Sign in to your AvsarGrid career dashboard."
+      subtitle="Sign in to your AvsarGrid exam dashboard."
     >
       {error ? <div className="alert-error mb-4">{error}</div> : null}
 

@@ -28,7 +28,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-xl font-semibold">2. How We Use Your Information</h2>
               <p className="mt-2 text-[var(--muted-foreground)]">
-                We use your information to provide career matching services, analyze your resume for job recommendations, improve our platform, and communicate with you about your account. Your resume data is processed by AI to generate personalized insights and job matches.
+                We use your information to provide exam eligibility matching services, analyze your profile for exam recommendations, improve our platform, and communicate with you about your account. Your profile data is processed by AI to generate personalized insights and exam matches.
               </p>
             </section>
 

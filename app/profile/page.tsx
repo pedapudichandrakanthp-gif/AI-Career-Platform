@@ -21,11 +21,6 @@ function formatSkillsForInput(value: string | string[] | null): string {
   return value ?? "";
 }
 
-function formatListForInput(value: string | string[] | null): string {
-  if (Array.isArray(value)) return value.join(", ");
-  return value ?? "";
-}
-
 function parseCommaList(value: string): string[] {
   return value
     .split(",")
@@ -75,8 +70,6 @@ export default function ProfilePage() {
   const [projects, setProjects] = useState("");
   const [certifications, setCertifications] = useState("");
   const [preferredJobType, setPreferredJobType] = useState("");
-  const [workMode, setWorkMode] = useState("");
-  const [expectedSalary, setExpectedSalary] = useState<number | "">("");
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -92,30 +85,30 @@ export default function ProfilePage() {
 
       const { data, error } = await supabase.from("user_profiles").select("*").eq("user_id", user.id).single();
 
-      if (error && error.code !== "PGRST116") {
+      if (error) {
         console.error("Error fetching profile:", error.message);
+        if (error.code === "PGRST116") {
+          // Profile doesn't exist yet, that's okay
+          setMessage("Complete your profile to get started.");
+        } else {
+          setMessage(`Error loading profile: ${error.message}`);
+        }
       }
 
       if (data) {
         setFullName(data.full_name || "");
-        setPhone(data.phone || "");
         setLocation(data.current_state || "");
         setEducation(data.highest_qualification || "");
         setDegree(data.degree || "");
-        setSkills(formatSkillsForInput(data.skills));
-        setExperienceYears(data.experience_years || "");
-        setProjects(data.projects || "");
-        setCertifications(formatListForInput(data.certifications));
-        setPreferredJobType(data.preferred_job_type || "");
-        setWorkMode(
-          ["Remote", "Hybrid", "Onsite"].includes(data.preferred_job_type ?? "")
-            ? data.preferred_job_type ?? ""
-            : "",
-        );
-        setExpectedSalary(data.expected_salary || "");
+        setSkills(formatSkillsForInput(data.exam_category_preferences || []));
+        setExperienceYears("");
+        setProjects("");
+        setCertifications("");
+        setPreferredJobType(data.exam_state_preference || "");
       }
     } catch (err) {
       console.error("Unexpected error fetching profile:", err);
+      setMessage("An unexpected error occurred while loading your profile.");
     } finally {
       setLoading(false);
     }
@@ -145,16 +138,11 @@ export default function ProfilePage() {
         .upsert({
           user_id: user.id,
           full_name: fullName,
-          phone,
           current_state: location,
           highest_qualification: education,
           degree,
-          skills: parseCommaList(skills),
-          experience_years: experienceYears === "" ? 0 : Number(experienceYears),
-          projects: projects || null,
-          certifications: parseCommaList(certifications).length > 0 ? parseCommaList(certifications) : null,
-          preferred_job_type: workMode || preferredJobType || null,
-          expected_salary: expectedSalary === "" ? 0 : Number(expectedSalary),
+          exam_category_preferences: parseCommaList(skills),
+          exam_state_preference: preferredJobType || null,
           updated_at: new Date().toISOString(),
         }, {
           onConflict: 'user_id'

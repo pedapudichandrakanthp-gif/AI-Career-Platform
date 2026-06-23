@@ -182,7 +182,7 @@ export default function ResumePage() {
 
       const data = (await response.json()) as { analysis: ResumeAnalysis };
       setAnalysisResult(data.analysis);
-      setMessage("Resume analysis complete.");
+      setMessage("Eligibility analysis complete.");
       await loadResumeData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Analysis failed.");

@@ -22,11 +22,11 @@ const plusJakarta = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: "AvsarGrid — AI-Powered Career Intelligence",
+    default: "AvsarGrid — AI-Powered Government Exam Intelligence",
     template: "%s | AvsarGrid",
   },
   description:
-    "AvsarGrid — AI-Powered Career Intelligence Platform. Find better opportunities faster with resume analysis, job matching, and personalized recommendations.",
+    "AvsarGrid — AI-Powered Government Exam Platform. Never miss a government exam notification with eligibility analysis, exam matching, and personalized recommendations.",
 };
 
 export const viewport: Viewport = {

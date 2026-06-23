@@ -12,16 +12,16 @@ import { supabase } from "@/lib/supabase";
 import ThemeToggle from "./ThemeToggle";
 
 const guestNavItems = [
-  { href: "/jobs", label: "Jobs" },
+  { href: "/jobs", label: "Exams" },
   { href: "/login", label: "Sign In" },
   { href: "/register", label: "Get Started" },
 ] as const;
 
 const authenticatedNavItems = [
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/jobs", label: "Jobs" },
+  { href: "/jobs", label: "Exams" },
   { href: "/recommendations", label: "Recommendations" },
-  { href: "/saved-jobs", label: "Saved Jobs" },
+  { href: "/saved-jobs", label: "Saved Exams" },
   { href: "/profile", label: "Profile" },
 ] as const;
 
@@ -109,7 +109,7 @@ export default function Navbar() {
           <div className="hidden sm:block">
             <span className="font-display text-lg font-bold tracking-tight">AvsarGrid</span>
             <p className="text-[10px] font-medium leading-none text-blue-600 dark:text-blue-400">
-              Career Intelligence
+              Government Exam Intelligence
             </p>
           </div>
         </Link>

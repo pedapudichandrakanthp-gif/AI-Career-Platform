@@ -207,7 +207,7 @@ export default function RecommendationsPage() {
                               <div className="mt-2 flex flex-wrap gap-3 text-xs text-[var(--muted-foreground)]">
                                 <span className="flex items-center gap-1">
                                   <MapPin size={12} />
-                                  {item.job.location ?? "Remote"}
+                                  {item.job.location ?? "All India"}
                                 </span>
                               </div>
                             </div>

@@ -25,7 +25,7 @@ export default function AuthShell({ children, title, subtitle }: AuthShellProps)
             <span className="font-display text-2xl font-bold tracking-tight">AvsarGrid</span>
           </Link>
           <p className="mt-2 text-xs font-medium text-blue-600 dark:text-blue-400">
-            AI-Powered Career Intelligence Platform
+            AI-Powered Government Exam Platform
           </p>
         </div>
 

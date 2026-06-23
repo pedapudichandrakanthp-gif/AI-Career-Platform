@@ -4,7 +4,7 @@ import { Sparkles } from "lucide-react";
 
 const footerLinks = {
   Product: [
-    { href: "/jobs", label: "Browse Jobs" },
+    { href: "/jobs", label: "Browse Exams" },
     { href: "/recommendations", label: "Recommendations" },
     { href: "/dashboard", label: "Dashboard" },
   ],
@@ -31,11 +31,11 @@ export default function Footer() {
               <span className="font-display text-xl font-bold tracking-tight">AvsarGrid</span>
             </Link>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-[var(--muted-foreground)]">
-              AI-Powered Career Intelligence Platform. Find better opportunities faster with
-              intelligent matching, resume analysis, and personalized career roadmaps.
+              AI-Powered Government Exam Platform. Never miss a government exam notification with
+              intelligent matching, eligibility analysis, and personalized exam roadmaps.
             </p>
             <p className="mt-2 text-xs font-medium text-blue-600 dark:text-blue-400">
-              Find Better Opportunities Faster
+              Never Miss a Government Exam Notification
             </p>
           </div>
 
@@ -65,7 +65,7 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} AvsarGrid. All rights reserved.
           </p>
           <p className="text-xs text-[var(--muted-foreground)]">
-            Powered by Groq AI &middot; Built for modern job seekers
+            Powered by Groq AI &middot; Built for government exam aspirants
           </p>
         </div>
       </div>

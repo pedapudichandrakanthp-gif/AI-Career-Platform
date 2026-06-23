@@ -82,6 +82,7 @@ export default function JobDetailsPage() {
 
   const fetchJob = useCallback(async () => {
     setLoading(true);
+    setErrorMessage("");
 
     const { data, error } = await supabase
       .from("jobs")
@@ -91,6 +92,13 @@ export default function JobDetailsPage() {
 
     if (error) {
       console.error(error);
+      setErrorMessage(`Failed to load exam: ${error.message}`);
+      setLoading(false);
+      return;
+    }
+
+    if (!data) {
+      setErrorMessage("Exam not found");
       setLoading(false);
       return;
     }
@@ -359,6 +367,17 @@ export default function JobDetailsPage() {
     return (
       <main className="page-main">
         <p className="text-slate-600 dark:text-slate-400">Loading...</p>
+      </main>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <main className="page-main">
+        <div className="alert-error mb-4">{errorMessage}</div>
+        <Link href="/jobs" className="btn-primary inline-flex">
+          Back to Exams
+        </Link>
       </main>
     );
   }

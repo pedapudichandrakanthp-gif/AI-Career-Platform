@@ -28,7 +28,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-xl font-semibold">2. Description of Service</h2>
               <p className="mt-2 text-[var(--muted-foreground)]">
-                AvsarGrid is an AI-powered career intelligence platform that provides resume analysis, job matching, and career recommendations. We use artificial intelligence to analyze your resume and match you with relevant job opportunities.
+                AvsarGrid is an AI-powered government exam platform that provides eligibility analysis, exam matching, and exam recommendations. We use artificial intelligence to analyze your profile and match you with relevant government exam opportunities.
               </p>
             </section>
 

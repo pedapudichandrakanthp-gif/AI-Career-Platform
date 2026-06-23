@@ -14,8 +14,8 @@ export default function ResumeAnalysisCard({ analysis, onClose }: ResumeAnalysis
     <section className="card mt-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="section-title">Resume Analysis</h2>
-          <p className="mt-1 text-sm text-[var(--muted-foreground)]">AI-powered ATS and career insights</p>
+          <h2 className="section-title">Eligibility Analysis</h2>
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">AI-powered ATS and exam insights</p>
         </div>
         <button type="button" onClick={onClose} className="btn-secondary text-sm">
           Dismiss
