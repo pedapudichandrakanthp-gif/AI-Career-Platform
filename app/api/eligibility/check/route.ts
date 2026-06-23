@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     let userProfileData: UserProfile = userProfile;
     if (!userProfileData) {
       const { data: profile, error: profileError } = await supabase
-        .from('user_profiles')
+        .from('profiles')
         .select('*')
         .eq('user_id', effectiveUserId)
         .single();

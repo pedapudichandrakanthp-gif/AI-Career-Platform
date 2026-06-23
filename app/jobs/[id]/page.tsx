@@ -81,6 +81,12 @@ export default function JobDetailsPage() {
   const [errorMessage, setErrorMessage] = useState("");
 
   const fetchJob = useCallback(async () => {
+    if (!params.id) {
+      setErrorMessage("Invalid exam ID");
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setErrorMessage("");
 

@@ -52,7 +52,7 @@ async function DashboardContent() {
 
   // Fetch all dashboard data concurrently
   const [profileRes, applicationsRes, jobsRes] = await Promise.all([
-    supabase.from('user_profiles').select('*').eq('user_id', user.id).single(),
+    supabase.from('profiles').select('*').eq('user_id', user.id).single(),
     supabase.from('applications').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
     supabase.from('jobs').select('*').eq('is_active', true)
   ]);

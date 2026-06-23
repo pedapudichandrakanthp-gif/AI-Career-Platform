@@ -117,7 +117,7 @@ export default function RegisterPage() {
   return (
     <AuthShell
       title="Create your account"
-      subtitle="Start finding better opportunities faster with AvsarGrid."
+      subtitle="Start tracking government exams with AvsarGrid."
     >
       {error ? <div className="alert-error mb-4">{error}</div> : null}
 
