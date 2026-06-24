@@ -113,26 +113,28 @@ export default function JobDetailsPage() {
     setLoading(false);
 
     // Fetch previous papers for this job
-    const { data: papers } = await supabase
-      .from("previous_papers")
-      .select("*")
-      .eq("job_id", params.id)
-      .order("exam_year", { ascending: false });
+    // previous_papers table does not exist in production
+    // const { data: papers } = await supabase
+    //   .from("previous_papers")
+    //   .select("*")
+    //   .eq("job_id", params.id)
+    //   .order("exam_year", { ascending: false });
 
-    setPreviousPapers(papers || []);
+    setPreviousPapers([]);
 
     // Check if user is subscribed to notifications for this job
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (user) {
-      const { data: notifications } = await supabase
-        .from("exam_notifications")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("job_id", params.id)
-        .limit(1);
-      setSubscribedToNotifications((notifications ?? []).length > 0);
+      // exam_notifications table does not exist in production
+      // const { data: notifications } = await supabase
+      //   .from("exam_notifications")
+      //   .select("*")
+      //   .eq("user_id", user.id)
+      //   .eq("job_id", params.id)
+      //   .limit(1);
+      setSubscribedToNotifications(false);
     }
   }, [params.id]);
 

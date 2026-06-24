@@ -65,18 +65,6 @@ CREATE INDEX IF NOT EXISTS idx_jobs_apply_end_date ON jobs(apply_end_date);
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
--- Ensure saved_jobs table exists
-CREATE TABLE IF NOT EXISTS saved_jobs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  job_id UUID NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
-  saved_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(user_id, job_id)
-);
-
-ALTER TABLE saved_jobs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "Users manage own saved_jobs" ON saved_jobs FOR ALL USING (auth.uid() = user_id);
-
 -- ============================================================================
 -- PART 2: CREATE GOVERNMENT PLATFORM FOUNDATION TABLES
 -- ============================================================================
@@ -234,7 +222,7 @@ CREATE POLICY IF NOT EXISTS "Users update own notifications" ON exam_notificatio
 -- 2. ✅ Added government profile fields to auth.users
 -- 3. ✅ Ensured jobs table has is_active column and indexes
 -- 4. ✅ Ensured applications table has timestamps
--- 5. ✅ Created saved_jobs table with RLS
+-- 5. ✅ Ensured 'applications' table supports save-for-later status
 --
 -- New Government Tables Created:
 -- 1. ✅ user_profiles - Extended government profile data

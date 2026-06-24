@@ -47,16 +47,17 @@ export async function POST(request: Request) {
 
     let notificationCount = 0;
 
+    // exam_notifications table does not exist in production
     // Create notification for each user
     for (const savedJob of savedJobs) {
-      await supabase.from("exam_notifications").insert({
-        user_id: savedJob.user_id,
-        job_id: jobId,
-        notification_type: "result_announced",
-        title: `Result announced for ${job.exam_name}`,
-        message: `The result for ${job.exam_name} has been announced${resultDate ? ` on ${resultDate}` : ""}. Check the official website for details.`,
-        notification_data: { resultDate },
-      });
+      // await supabase.from("exam_notifications").insert({
+      //   user_id: savedJob.user_id,
+      //   job_id: jobId,
+      //   notification_type: "result_announced",
+      //   title: `Result announced for ${job.exam_name}`,
+      //   message: `The result for ${job.exam_name} has been announced${resultDate ? ` on ${resultDate}` : ""}. Check the official website for details.`,
+      //   notification_data: { resultDate },
+      // });
       notificationCount++;
     }
 

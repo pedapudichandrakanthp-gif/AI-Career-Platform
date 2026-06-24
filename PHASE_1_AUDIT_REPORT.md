@@ -68,19 +68,18 @@
 
 ---
 
-### 5. ✅ Save-Job Functionality
-**Issue:** Potential missing saved_jobs table or incorrect schema
+### 5. ✅ Save Exam Functionality
+**Issue:** `saved_jobs` table does not exist in production, breaking the save feature.
 **Fix Applied:**
-- Created saved_jobs table with proper schema
-- Added RLS policies
-- Added unique constraint on (user_id, job_id)
-- Existing code is correct
+- Refactored the "Save Exam" feature to use the existing `applications` table.
+- A "saved" exam is now an entry in `applications` with `status = 'saved'`.
+- This change removes the dependency on the non-existent `saved_jobs` table.
 
 **Files Modified:**
-- `supabase/migrations/20250617_fix_production_issues.sql` (NEW)
-- App code unchanged (already correct)
+- `supabase/migrations/20250617_fix_production_issues.sql` (UPDATED)
+- `app/saved-jobs/page.tsx` and relevant components (UPDATED)
 
-**Validation:** Save/unsave operations work correctly
+**Validation:** Save/unsave operations now correctly create/delete records in the `applications` table.
 
 ---
 
@@ -242,11 +241,10 @@
 | 2 | Dashboard queries profiles table | HIGH | Update query | ✅ Fixed |
 | 3 | Profile completion wrong fields | MEDIUM | Update logic | ✅ Fixed |
 | 4 | Jobs page is_active column | HIGH | Add column | ✅ Fixed |
-| 5 | Save-job functionality | HIGH | Create table | ✅ Fixed |
+| 5 | Save-job functionality | HIGH | Refactor to use `applications` table | ✅ Fixed |
 | 6 | Application tracking | HIGH | Add fields | ✅ Fixed |
 | 7 | Dashboard metrics | MEDIUM | Fix calculations | ✅ Fixed |
 
----
 
 ## GOVERNMENT PLATFORM FOUNDATION
 

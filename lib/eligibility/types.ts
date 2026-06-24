@@ -8,31 +8,27 @@ export interface UserProfile {
   age?: number;
   gender?: 'M' | 'F' | 'Other';
   category?: 'UR' | 'OBC' | 'SC' | 'ST' | 'EWS';
-  has_disability?: boolean;
-  disability_type?: string;
-  is_ex_serviceman?: boolean;
-  ex_service_years?: number;
-  current_state?: string;
-  highest_qualification?: string;
+  has_pwd?: boolean;
+  ex_serviceman?: boolean;
+  state?: string;
+  qualification?: string;
   degree?: string;
   branch?: string;
-  graduation_year?: number;
-  grade_percentage?: number;
+  skills?: string[] | null;
+  languages?: string[] | null;
+  exam_preference?: string | null;
+  phone?: string | null;
 }
 
-export interface JobEligibility {
+export interface ExamEligibility {
   id?: string;
   job_id?: string;
-  age_min?: number;
-  age_max?: number;
-  category_relaxation?: Record<string, number>;
-  vacancies_by_category?: Record<string, number>;
   qualification_required?: string;
-  state_specific?: boolean;
-  required_state?: string;
-  requires_disability?: boolean;
-  requires_ex_serviceman?: boolean;
-  gender_required?: string;
+  experience_required?: number | null;
+  pay_scale?: string | null;
+  application_start_date?: string | null;
+  application_deadline?: string | null;
+  exam_date?: string | null;
 }
 
 export interface EligibilityCheckResult {

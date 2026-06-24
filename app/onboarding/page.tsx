@@ -7,7 +7,6 @@ import {
   Info,
   Loader2,
   Sparkles,
-  FileUp,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -33,17 +32,18 @@ type ProfileData = {
   full_name: string;
   date_of_birth: string;
   age: number | null;
-  gender: "Male" | "Female" | "Other" | "";
+  gender: "M" | "F" | "Other" | "";
   category: "UR" | "OBC" | "SC" | "ST" | "EWS" | "";
   state: string;
   has_pwd: boolean;
   ex_serviceman: boolean;
-  highest_qualification: "10th" | "12th" | "Diploma" | "Graduate" | "Post Graduate" | "PhD" | "";
+  qualification: "10th" | "12th" | "Diploma" | "Graduate" | "Post Graduate" | "PhD" | "";
   degree: string;
   branch: string;
-  passing_year: number | null;
-  grade_percentage: number | null;
-  professional_certificates: string;
+  phone: string;
+  skills: string;
+  languages: string;
+  exam_preference: string;
 };
 
 const initialProfileData: ProfileData = {
@@ -55,12 +55,13 @@ const initialProfileData: ProfileData = {
   state: "",
   has_pwd: false,
   ex_serviceman: false,
-  highest_qualification: "",
+  qualification: "",
   degree: "",
   branch: "",
-  passing_year: null,
-  grade_percentage: null,
-  professional_certificates: "",
+  phone: "",
+  skills: "",
+  languages: "",
+  exam_preference: "",
 };
 
 // A simple tooltip component
@@ -79,9 +80,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [profileData, setProfileData] = useState<ProfileData>(initialProfileData);
-  const [file, setFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -121,7 +120,7 @@ export default function OnboardingPage() {
   };
 
   const validateStep2 = () => {
-    return profileData.highest_qualification && profileData.passing_year;
+    return profileData.qualification;
   };
 
   const handleNext = () => {
@@ -144,61 +143,25 @@ export default function OnboardingPage() {
   const handleFinishSetup = async () => {
     setIsSaving(true);
     setError(null);
-    let finalProfileData = { ...profileData };
+    
+    // Create a copy to avoid mutating state directly before saving
+    const { ...profileToSave } = profileData;
 
-    if (file) {
-      setIsAnalyzing(true);
-      try {
-        // Client-side PDF text extraction using pdf.js
-        const arrayBuffer = await file.arrayBuffer();
-        const pdfjs = await import('pdfjs-dist');
-        // This is a CDN link for the worker. For production, you should host it yourself.
-        pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
-        const pdf = await pdfjs.getDocument(arrayBuffer).promise;
-        let resumeText = '';
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const textContent = await page.getTextContent();
-          resumeText += textContent.items.map((item) => {
-            if ('str' in item) {
-              return item.str;
-            }
-            return '';
-          }).join(' ');
-        }
-        
-        const response = await fetch('/api/ai/extract-profile', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ resumeText })
-        });
+    // The 'skills' and 'languages' are stored as arrays in the DB
+    const payload = {
+      ...profileToSave,
+      user_id: userId,
+      skills: profileToSave.skills.split(',').map(s => s.trim()).filter(Boolean),
+      languages: profileToSave.languages.split(',').map(s => s.trim()).filter(Boolean),
+    };
 
-        if (response.ok) {
-          const { profile: aiProfile } = await response.json();
-          // Merge AI data, giving precedence to manually entered data
-          finalProfileData = {
-            ...aiProfile, // AI data as base
-            ...finalProfileData, // Manual data overwrites
-            has_pwd: finalProfileData.has_pwd,
-            ex_serviceman: finalProfileData.ex_serviceman,
-          };
-        }
-      } catch (e) {
-        console.error("AI extraction failed:", e);
-        // Continue with manually entered data even if AI fails
-      } finally {
-        setIsAnalyzing(false);
-      }
-    }
+    console.log("Profile payload", payload);
 
     try {
       if (!userId) throw new Error("User not found.");
 
-      const { error: saveError } = await supabase.from('profiles').upsert({
-        id: userId,
-        ...finalProfileData,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'id' });
+      // Use user_id as the conflict target for upsert
+      const { error: saveError } = await supabase.from('profiles').upsert(payload, { onConflict: 'user_id' });
 
       if (saveError) throw saveError;
 
@@ -207,12 +170,12 @@ export default function OnboardingPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          age: finalProfileData.age,
-          category: finalProfileData.category,
-          qualification: finalProfileData.highest_qualification,
-          state: finalProfileData.state,
-          has_pwd: finalProfileData.has_pwd,
-          ex_serviceman: finalProfileData.ex_serviceman,
+          age: payload.age,
+          category: payload.category,
+          qualification: payload.qualification,
+          state: payload.state,
+          has_pwd: payload.has_pwd,
+          ex_serviceman: payload.ex_serviceman,
         })
       });
 
@@ -229,7 +192,6 @@ export default function OnboardingPage() {
   const steps = [
     { number: 1, label: "Basic Info" },
     { number: 2, label: "Education" },
-    { number: 3, label: "Resume (Optional)" },
   ];
 
   const renderStep = () => {
@@ -239,8 +201,9 @@ export default function OnboardingPage() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1"><label htmlFor="full_name" className="text-sm font-medium">Full Name</label><input id="full_name" type="text" className="input" value={profileData.full_name} onChange={e => handleInputChange('full_name', e.target.value)} /></div>
+              <div className="space-y-1"><label htmlFor="phone" className="text-sm font-medium">Mobile Number</label><input id="phone" type="tel" className="input" value={profileData.phone} onChange={e => handleInputChange('phone', e.target.value)} /></div>
               <div className="space-y-1"><label htmlFor="dob" className="text-sm font-medium">Date of Birth</label><input id="dob" type="date" className="input" value={profileData.date_of_birth} onChange={e => handleInputChange('date_of_birth', e.target.value)} />{profileData.age !== null && <p className="text-xs text-[var(--muted-foreground)] mt-1">Your age: {profileData.age}</p>}</div>
-              <div className="space-y-1"><label className="text-sm font-medium">Gender</label><select className="input" value={profileData.gender} onChange={e => handleInputChange('gender', e.target.value)}><option value="" disabled>Select Gender</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
+              <div className="space-y-1"><label className="text-sm font-medium">Gender</label><select className="input" value={profileData.gender} onChange={e => handleInputChange('gender', e.target.value)}><option value="" disabled>Select Gender</option><option value="M">Male</option><option value="F">Female</option><option value="Other">Other</option></select></div>
               <div className="space-y-1"><label className="text-sm font-medium flex items-center gap-2">Category<Tooltip text={categoryTooltips[profileData.category || 'UR']}><Info size={14} className="cursor-pointer text-[var(--muted-foreground)]" /></Tooltip></label><select className="input" value={profileData.category} onChange={e => handleInputChange('category', e.target.value)}><option value="" disabled>Select Category</option>{Object.keys(categoryTooltips).map(cat => <option key={cat} value={cat}>{cat}</option>)}</select></div>
               <div className="space-y-1 md:col-span-2"><label className="text-sm font-medium">State / Union Territory</label><select className="input" value={profileData.state} onChange={e => handleInputChange('state', e.target.value)}><option value="" disabled>Select State/UT</option>{indianStatesAndUTsList.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
             </div>
@@ -250,23 +213,12 @@ export default function OnboardingPage() {
       case 2:
         return (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-1 md:col-span-2"><label className="text-sm font-medium">Highest Qualification</label><select className="input" value={profileData.highest_qualification} onChange={e => handleInputChange('highest_qualification', e.target.value)}><option value="" disabled>Select Qualification</option><option value="10th">10th Pass</option><option value="12th">12th Pass</option><option value="Diploma">Diploma</option><option value="Graduate">Graduate</option><option value="Post Graduate">Post Graduate</option><option value="PhD">PhD</option></select></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6"><div className="space-y-1 md:col-span-2"><label className="text-sm font-medium">Qualification</label><select className="input" value={profileData.qualification} onChange={e => handleInputChange('qualification', e.target.value)}><option value="" disabled>Select Qualification</option><option value="10th">10th Pass</option><option value="12th">12th Pass</option><option value="Diploma">Diploma</option><option value="Graduate">Graduate</option><option value="Post Graduate">Post Graduate</option><option value="PhD">PhD</option></select></div>
               <div className="space-y-1"><label className="text-sm font-medium">Degree Name</label><input type="text" placeholder="e.g., B.Tech, B.Com" className="input" value={profileData.degree} onChange={e => handleInputChange('degree', e.target.value)} /></div>
               <div className="space-y-1"><label className="text-sm font-medium">Specialization / Branch</label><input type="text" placeholder="e.g., Computer Science" className="input" value={profileData.branch} onChange={e => handleInputChange('branch', e.target.value)} /></div>
-              <div className="space-y-1"><label className="text-sm font-medium">Year of Passing</label><input type="number" placeholder="e.g., 2022" className="input" value={profileData.passing_year || ''} onChange={e => handleInputChange('passing_year', e.target.value ? parseInt(e.target.value) : null)} /></div>
-              <div className="space-y-1"><label className="text-sm font-medium">Percentage / CGPA</label><input type="number" step="0.01" placeholder="e.g., 85.5 or 8.5" className="input" value={profileData.grade_percentage || ''} onChange={e => handleInputChange('grade_percentage', e.target.value ? parseFloat(e.target.value) : null)} /></div>
-              <div className="space-y-1 md:col-span-2"><label className="text-sm font-medium">Professional Certificates (comma-separated)</label><input type="text" placeholder="e.g., NPTEL, AWS Certified" className="input" value={profileData.professional_certificates} onChange={e => handleInputChange('professional_certificates', e.target.value)} /></div>
-            </div>
-          </div>
-        );
-      case 3:
-        return (
-          <div className="text-center">
-            <div className="mt-6 flex flex-col items-center rounded-xl border-2 border-dashed border-slate-300 p-8 dark:border-slate-700">
-              <FileUp size={40} className="text-blue-600 dark:text-blue-400" /><p className="mt-4 font-semibold">Upload Your Resume (Optional)</p><p className="mt-1 text-sm text-[var(--muted-foreground)]">Let AI fill in any missing details from your resume for better accuracy.</p>
-              <input type="file" accept=".pdf" className="mt-4 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-              {file && <p className="mt-2 text-sm font-medium">{file.name}</p>}
+              <div className="space-y-1 md:col-span-2"><label className="text-sm font-medium">Skills (comma-separated)</label><textarea placeholder="e.g. Python, Data Analysis, Public Speaking" className="input" value={profileData.skills} onChange={e => handleInputChange('skills', e.target.value)} /></div>
+              <div className="space-y-1"><label className="text-sm font-medium">Languages (comma-separated)</label><input type="text" placeholder="e.g. English, Hindi, Tamil" className="input" value={profileData.languages} onChange={e => handleInputChange('languages', e.target.value)} /></div>
+              <div className="space-y-1"><label className="text-sm font-medium">Primary Exam Preference</label><select className="input" value={profileData.exam_preference} onChange={e => handleInputChange('exam_preference', e.target.value)}><option value="" disabled>Select Preference</option><option value="SSC">SSC Exams</option><option value="Banking">Banking Exams</option><option value="Railway">Railway Exams</option><option value="UPSC">UPSC Exams</option><option value="State PSC">State PSC Exams</option></select></div>
             </div>
           </div>
         );
@@ -281,7 +233,7 @@ export default function OnboardingPage() {
         <div className="card p-6 sm:p-8">
           <h1 className="text-2xl sm:text-3xl font-bold font-display text-center">Setup Your AvsarGrid Profile</h1>
           <p className="mt-2 text-center text-[var(--muted-foreground)]">
-            A complete profile helps our AI find the perfect government jobs for you.
+            A complete profile helps our AI find the perfect government exams for you.
           </p>
 
           {/* Stepper */}
@@ -315,14 +267,14 @@ export default function OnboardingPage() {
               )}
             </div>
             <div>
-              {currentStep < 3 ? (
+              {currentStep < 2 ? (
                 <button onClick={handleNext} className="btn-primary gap-2">
                   Next <ChevronRight size={18} />
                 </button>
               ) : (
                 <button onClick={handleFinishSetup} disabled={isSaving} className="btn-primary gap-2">
                   {isSaving ? <Loader2 className="animate-spin" /> : <Sparkles size={18} />}
-                  {isAnalyzing ? "AI is Analyzing..." : isSaving ? "Saving Profile..." : "Finish Setup"}
+                  {isSaving ? "Saving Profile..." : "Finish Setup"}
                 </button>
               )}
             </div>

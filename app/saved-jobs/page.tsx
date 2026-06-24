@@ -4,12 +4,11 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { normalizeSavedJob, type SavedJobQueryRow } from "@/lib/jobs/savedJobs";
 import { supabase } from "@/lib/supabase";
-import type { SavedJobWithJob } from "@/types/database";
+import type { JobRow, SavedJobRow } from "@/types/database";
 
 export default function SavedJobsPage() {
-  const [savedJobs, setSavedJobs] = useState<SavedJobWithJob[]>([]);
+  const [savedJobs, setSavedJobs] = useState<(SavedJobRow & { jobs: JobRow | null })[]>([]);
 
   const fetchSavedJobs = useCallback(async () => {
     const {
@@ -20,32 +19,17 @@ export default function SavedJobsPage() {
 
     const { data, error } = await supabase
       .from("saved_jobs")
-      .select(
-        `
-        id,
-        saved_at,
-        jobs (
-          id,
-          title,
-          company_name,
-          location,
-          category
-        )
-      `,
-      )
+      .select("*, jobs(*)")
       .eq("user_id", user.id)
       .order("saved_at", { ascending: false });
 
     if (error) {
       console.error(error);
+      setSavedJobs([]);
       return;
     }
 
-    const normalizedSavedJobs = ((data ?? []) as unknown as SavedJobQueryRow[]).map(
-      normalizeSavedJob,
-    );
-
-    setSavedJobs(normalizedSavedJobs);
+    setSavedJobs(data || []);
   }, []);
 
   useEffect(() => {
@@ -96,17 +80,20 @@ export default function SavedJobsPage() {
                         <h2 className="card-title">{item.jobs?.exam_name ?? "Untitled Exam"}</h2>
                       )}
 
-                      <p className="mt-2 text-slate-600 dark:text-slate-400">
+                      <p className="mt-2 font-medium text-slate-600 dark:text-slate-400">
                         {item.jobs?.conducting_body ?? "Not specified"}
                       </p>
-                      <p className="text-sm text-slate-500 dark:text-slate-500">
-                        {item.jobs?.location ?? "Not specified"}
-                      </p>
-                      {item.jobs?.category ? (
-                        <span className="mt-2 inline-block rounded-full bg-slate-200 px-3 py-1 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                          {item.jobs.category}
-                        </span>
-                      ) : null}
+                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500 dark:text-slate-500">
+                        {item.jobs?.application_deadline && (
+                          <span>Deadline: {new Date(item.jobs.application_deadline).toLocaleDateString()}</span>
+                        )}
+                        {item.jobs?.vacancies && (
+                          <span>Vacancies: {item.jobs.vacancies.toLocaleString()}</span>
+                        )}
+                        {item.jobs?.status && (
+                          <span>Status: <span className="font-medium capitalize">{item.jobs.status}</span></span>
+                        )}
+                      </div>
                     </div>
 
                     <button

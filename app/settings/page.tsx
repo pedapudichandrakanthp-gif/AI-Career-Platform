@@ -29,15 +29,16 @@ export default function SettingsPage() {
 
     if (!user) return;
 
-    const [settingsRes, searchesRes, alertsRes] = await Promise.all([
-      supabase.from("user_settings").select("*").eq("user_id", user.id).maybeSingle(),
-      supabase.from("saved_searches").select("*").eq("user_id", user.id),
-      supabase.from("job_alerts").select("*").eq("user_id", user.id),
-    ]);
+    // user_settings, saved_searches, job_alerts tables do not exist in production
+    // const [settingsRes, searchesRes, alertsRes] = await Promise.all([
+    //   supabase.from("user_settings").select("*").eq("user_id", user.id).maybeSingle(),
+    //   supabase.from("saved_searches").select("*").eq("user_id", user.id),
+    //   supabase.from("job_alerts").select("*").eq("user_id", user.id),
+    // ]);
 
-    setSettings(settingsRes.data as UserSettingsRow | null);
-    setSavedSearches((searchesRes.data ?? []) as SavedSearchRow[]);
-    setJobAlerts((alertsRes.data ?? []) as JobAlertRow[]);
+    setSettings(null);
+    setSavedSearches([]);
+    setJobAlerts([]);
   };
 
   const saveSettings = async (updates: Partial<UserSettingsRow>) => {
@@ -47,22 +48,23 @@ export default function SettingsPage() {
 
     if (!user) return;
 
-    const { error: upsertError } = await supabase.from("user_settings").upsert([
-      {
-        user_id: user.id,
-        ...settings,
-        ...updates,
-        updated_at: new Date().toISOString(),
-      },
-    ]);
+    // user_settings table does not exist in production
+    // const { error: upsertError } = await supabase.from("user_settings").upsert([
+    //   {
+    //     user_id: user.id,
+    //     ...settings,
+    //     ...updates,
+    //     updated_at: new Date().toISOString(),
+    //   },
+    // ]);
 
-    if (upsertError) {
-      setError(upsertError.message);
-      return;
-    }
+    // if (upsertError) {
+    //   setError(upsertError.message);
+    //   return;
+    // }
 
-    setMessage("Settings saved.");
-    loadSettings();
+    setMessage("Settings not saved - user_settings table not available in production.");
+    // loadSettings();
   };
 
   const changePassword = async () => {
@@ -89,29 +91,31 @@ export default function SettingsPage() {
 
     if (!user || !alertName.trim()) return;
 
-    const { error: insertError } = await supabase.from("job_alerts").insert([
-      {
-        user_id: user.id,
-        name: alertName,
-        keywords: alertKeywords,
-        is_active: true,
-      },
-    ]);
+    // job_alerts table does not exist in production
+    // const { error: insertError } = await supabase.from("job_alerts").insert([
+    //   {
+    //     user_id: user.id,
+    //     name: alertName,
+    //     keywords: alertKeywords,
+    //     is_active: true,
+    //   },
+    // ]);
 
-    if (insertError) {
-      setError(insertError.message);
-      return;
-    }
+    // if (insertError) {
+    //   setError(insertError.message);
+    //   return;
+    // }
 
     setAlertName("");
     setAlertKeywords("");
-    setMessage("Job alert created.");
-    loadSettings();
+    setMessage("Job alert not created - job_alerts table not available in production.");
+    // loadSettings();
   };
 
   const deleteAlert = async (id: string) => {
-    await supabase.from("job_alerts").delete().eq("id", id);
-    loadSettings();
+    // job_alerts table does not exist in production
+    // await supabase.from("job_alerts").delete().eq("id", id);
+    // loadSettings();
   };
 
   return (

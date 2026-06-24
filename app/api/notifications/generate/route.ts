@@ -58,40 +58,41 @@ export async function POST() {
         const deadline = new Date(job.application_deadline);
         const daysUntilDeadline = Math.ceil((deadline.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
 
+        // exam_notifications table does not exist in production
         // Check if notification already exists for this event
-        const { data: existingNotifications } = await supabase
-          .from("exam_notifications")
-          .select("id, notification_type")
-          .eq("user_id", user.id)
-          .eq("job_id", job.id);
+        // const { data: existingNotifications } = await supabase
+        //   .from("exam_notifications")
+        //   .select("id, notification_type")
+        //   .eq("user_id", user.id)
+        //   .eq("job_id", job.id);
 
-        const existingTypes = new Set(existingNotifications?.map((n) => n.notification_type) || []);
+        // const existingTypes = new Set(existingNotifications?.map((n) => n.notification_type) || []);
 
         // Application closing in 3 days
-        if (daysUntilDeadline === 3 && !existingTypes.has("closing_soon_3d")) {
-          await supabase.from("exam_notifications").insert({
-            user_id: user.id,
-            job_id: job.id,
-            notification_type: "closing_soon_3d",
-            title: `Application closing in 3 days`,
-            message: `The application for ${job.exam_name} closes in 3 days. Apply now to avoid missing the deadline.`,
-            notification_data: { deadline: job.application_deadline },
-          });
-          notificationCount++;
-        }
+        // if (daysUntilDeadline === 3 && !existingTypes.has("closing_soon_3d")) {
+        //   await supabase.from("exam_notifications").insert({
+        //     user_id: user.id,
+        //     job_id: job.id,
+        //     notification_type: "closing_soon_3d",
+        //     title: `Application closing in 3 days`,
+        //     message: `The application for ${job.exam_name} closes in 3 days. Apply now to avoid missing the deadline.`,
+        //     notification_data: { deadline: job.application_deadline },
+        //   });
+        //   notificationCount++;
+        // }
 
         // Application closing tomorrow
-        if (daysUntilDeadline === 1 && !existingTypes.has("closing_soon_1d")) {
-          await supabase.from("exam_notifications").insert({
-            user_id: user.id,
-            job_id: job.id,
-            notification_type: "closing_soon_1d",
-            title: `Application closing tomorrow`,
-            message: `The application for ${job.exam_name} closes tomorrow. Apply now to avoid missing the deadline.`,
-            notification_data: { deadline: job.application_deadline },
-          });
-          notificationCount++;
-        }
+        // if (daysUntilDeadline === 1 && !existingTypes.has("closing_soon_1d")) {
+        //   await supabase.from("exam_notifications").insert({
+        //     user_id: user.id,
+        //     job_id: job.id,
+        //     notification_type: "closing_soon_1d",
+        //     title: `Application closing tomorrow`,
+        //     message: `The application for ${job.exam_name} closes tomorrow. Apply now to avoid missing the deadline.`,
+        //     notification_data: { deadline: job.application_deadline },
+        //   });
+        //   notificationCount++;
+        // }
       }
     }
 

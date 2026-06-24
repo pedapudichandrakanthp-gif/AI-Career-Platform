@@ -23,11 +23,12 @@ export default function AdminDashboardPage() {
   const [error, setError] = useState("");
 
   const loadStats = useCallback(async () => {
-    const [users, jobs, resumes, importLogs] = await Promise.all([
+    // job_import_logs table does not exist in production
+    const [users, jobs, resumes] = await Promise.all([
       supabase.from("users").select("id", { count: "exact", head: true }),
       supabase.from("jobs").select("id", { count: "exact", head: true }),
       supabase.from("resumes").select("id", { count: "exact", head: true }),
-      supabase.from("job_import_logs").select("*").order("created_at", { ascending: false }).limit(10),
+      // supabase.from("job_import_logs").select("*").order("created_at", { ascending: false }).limit(10),
     ]);
 
     setStats({
@@ -35,7 +36,7 @@ export default function AdminDashboardPage() {
       totalJobs: jobs.count ?? 0,
       totalResumes: resumes.count ?? 0,
     });
-    setLogs((importLogs.data ?? []) as JobImportLogRow[]);
+    setLogs([]); // No logs available - table doesn't exist
   }, []);
 
   useEffect(() => {

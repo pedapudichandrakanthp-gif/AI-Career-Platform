@@ -39,9 +39,10 @@ Phase 2 Audit successfully implemented the Government Foundation features while 
 - Government job fields properly displayed
 
 ### Saved Jobs Page (`app/saved-jobs/page.tsx`)
-**Status:** ✅ VERIFIED
-- Uses `saved_jobs` table (line 22)
-- Proper foreign key relationships
+**Status:** ✅ FIXED (Phase 2)
+- **Before:** Used `saved_jobs` table.
+- **After:** Uses the `applications` table, filtering for records where `status = 'saved'`.
+- **Changes:** The data fetching query was updated to `from('applications').select('*, jobs(*)').eq('status', 'saved')` to retrieve all exams the user has saved.
 
 ### Profile Page (`app/profile/page.tsx`)
 **Status:** ✅ FIXED (Phase 2)
@@ -374,8 +375,8 @@ CREATE TABLE user_job_eligibility (
 | Page | Table Used | Status | Notes |
 |------|------------|--------|-------|
 | Dashboard | user_profiles | ✅ Active | Phase 1 fix verified |
-| Jobs | jobs (is_active) | ✅ Active | Phase 1 fix verified |
-| Saved Jobs | saved_jobs | ✅ Active | Phase 1 fix verified |
+| Jobs | jobs | ✅ Active | Uses `is_active`. Phase 1 fix verified. |
+| Saved Jobs | applications | ✅ Active | Uses `status = 'saved'`. Phase 1 fix verified. |
 | Profile | user_profiles | ✅ Fixed | Updated in Phase 2 |
 | Onboarding | user_profiles | ✅ Fixed | Updated in Phase 2 |
 | Recommendations | match_scores | ⚠️ Legacy | Preserved, migrate in Phase 3 |

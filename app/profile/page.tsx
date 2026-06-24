@@ -1,32 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-
-import {
-  Award,
-  Briefcase,
-  GraduationCap,
-  MapPin,
-  Save,
-  User,
-  Wrench,
-} from "lucide-react";
+import { GraduationCap, MapPin, Save, User } from "lucide-react";
 
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { useResumeUpdated } from "@/hooks/useResumeUpdated";
 import { supabase } from "@/lib/supabase";
-
-function formatSkillsForInput(value: string | string[] | null): string {
-  if (Array.isArray(value)) return value.join(", ");
-  return value ?? "";
-}
-
-function parseCommaList(value: string): string[] {
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0);
-}
 
 function SectionCard({
   icon: Icon,
@@ -60,16 +38,22 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
+  // Form state
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
-  const [location, setLocation] = useState("");
-  const [education, setEducation] = useState("");
+  const [state, setState] = useState("");
+  const [qualification, setQualification] = useState("");
   const [degree, setDegree] = useState("");
+  const [branch, setBranch] = useState("");
   const [skills, setSkills] = useState("");
-  const [experienceYears, setExperienceYears] = useState<number | "">("");
-  const [projects, setProjects] = useState("");
-  const [certifications, setCertifications] = useState("");
-  const [preferredJobType, setPreferredJobType] = useState("");
+  const [languages, setLanguages] = useState("");
+  const [examPreference, setExamPreference] = useState("");
+
+  // Display-only fields
+  const [age, setAge] = useState<number | null>(null);
+  const [gender, setGender] = useState("");
+  const [category, setCategory] = useState("");
+
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -97,14 +81,19 @@ export default function ProfilePage() {
 
       if (data) {
         setFullName(data.full_name || "");
-        setLocation(data.current_state || "");
-        setEducation(data.highest_qualification || "");
+        setPhone(data.phone || "");
+        setState(data.state || "");
+        setQualification(data.qualification || "");
         setDegree(data.degree || "");
-        setSkills(formatSkillsForInput(data.exam_category_preferences || []));
-        setExperienceYears("");
-        setProjects("");
-        setCertifications("");
-        setPreferredJobType(data.exam_state_preference || "");
+        setBranch(data.branch || "");
+        setSkills(Array.isArray(data.skills) ? data.skills.join(', ') : "");
+        setLanguages(Array.isArray(data.languages) ? data.languages.join(', ') : "");
+        setExamPreference(data.exam_preference || "");
+
+        // Set display-only fields
+        setAge(data.age || null);
+        setGender(data.gender || "");
+        setCategory(data.category || "");
       }
     } catch (err) {
       console.error("Unexpected error fetching profile:", err);
@@ -117,10 +106,6 @@ export default function ProfilePage() {
   useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);
-
-  useResumeUpdated(() => {
-    fetchProfile();
-  });
 
   const saveProfile = async () => {
     setSaving(true);
@@ -138,11 +123,14 @@ export default function ProfilePage() {
         .upsert({
           user_id: user.id,
           full_name: fullName,
-          current_state: location,
-          highest_qualification: education,
+          phone,
+          state,
+          qualification,
           degree,
-          exam_category_preferences: parseCommaList(skills),
-          exam_state_preference: preferredJobType || null,
+          branch,
+          skills: skills.split(',').map(s => s.trim()).filter(Boolean),
+          languages: languages.split(',').map(s => s.trim()).filter(Boolean),
+          exam_preference: examPreference || null,
           updated_at: new Date().toISOString(),
         }, {
           onConflict: 'user_id'
@@ -192,84 +180,68 @@ export default function ProfilePage() {
 
           <div className="mt-8 space-y-6">
             <SectionCard icon={User} title="Personal Information" description="Basic contact details">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="sm:col-span-2">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="sm:col-span-3">
                   <label className="label" htmlFor="fullName">Full Name</label>
                   <input id="fullName" className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} />
                 </div>
                 <div>
-                  <label className="label" htmlFor="phone">Phone</label>
-                  <input id="phone" className="input" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  <label className="label" htmlFor="phone">Mobile Number</label>
+                  <input id="phone" type="tel" className="input" value={phone} onChange={(e) => setPhone(e.target.value)} />
                 </div>
                 <div>
-                  <label className="label" htmlFor="location">Location</label>
-                  <input id="location" className="input" value={location} onChange={(e) => setLocation(e.target.value)} />
+                  <label className="label" htmlFor="state">State</label>
+                  <input id="state" className="input" value={state} onChange={(e) => setState(e.target.value)} />
+                </div>
+                <div>
+                  <label className="label">Age</label>
+                  <p className="input-display">{age ? `${age} years` : 'N/A'}</p>
+                </div>
+                <div>
+                  <label className="label">Gender</label>
+                  <p className="input-display">{gender || 'N/A'}</p>
+                </div>
+                <div>
+                  <label className="label">Category</label>
+                  <p className="input-display">{category || 'N/A'}</p>
                 </div>
               </div>
-            </SectionCard>
-
-            <SectionCard icon={Wrench} title="Skills" description="Technical and professional skills">
-              <label className="label" htmlFor="skills">Skills (comma-separated)</label>
-              <textarea
-                id="skills"
-                className="input min-h-[100px]"
-                placeholder="React, TypeScript, Python, SQL..."
-                value={skills}
-                onChange={(e) => setSkills(e.target.value)}
-              />
             </SectionCard>
 
             <SectionCard icon={GraduationCap} title="Education" description="Academic background">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="label" htmlFor="education">Institution</label>
-                  <input id="education" className="input" value={education} onChange={(e) => setEducation(e.target.value)} />
+                  <label className="label" htmlFor="qualification">Qualification</label>
+                  <input id="qualification" className="input" value={qualification} onChange={(e) => setQualification(e.target.value)} />
                 </div>
                 <div>
                   <label className="label" htmlFor="degree">Degree</label>
                   <input id="degree" className="input" value={degree} onChange={(e) => setDegree(e.target.value)} />
                 </div>
+                <div className="sm:col-span-2">
+                  <label className="label" htmlFor="branch">Branch / Specialization</label>
+                  <input id="branch" className="input" value={branch} onChange={(e) => setBranch(e.target.value)} />
+                </div>
               </div>
-            </SectionCard>
-
-            <SectionCard icon={Briefcase} title="Experience" description="Professional background">
-              <label className="label" htmlFor="experienceYears">Years of Experience</label>
-              <input
-                id="experienceYears"
-                type="number"
-                className="input"
-                value={experienceYears}
-                onChange={(e) => setExperienceYears(e.target.value === "" ? "" : Number(e.target.value))}
-              />
-            </SectionCard>
-
-            <SectionCard icon={Briefcase} title="Projects" description="Notable projects and achievements">
-              <textarea
-                className="input min-h-[100px]"
-                placeholder="Describe key projects..."
-                value={projects}
-                onChange={(e) => setProjects(e.target.value)}
-              />
-            </SectionCard>
-
-            <SectionCard icon={Award} title="Certifications" description="Professional certifications">
-              <input
-                className="input"
-                placeholder="AWS, PMP, Google Cloud... (comma-separated)"
-                value={certifications}
-                onChange={(e) => setCertifications(e.target.value)}
-              />
             </SectionCard>
 
             <SectionCard icon={MapPin} title="Exam Preferences" description="Exam type and preferences">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="label" htmlFor="preferredJobType">Exam Preference</label>
+                  <label className="label" htmlFor="skills">Skills (comma-separated)</label>
+                  <input id="skills" className="input" value={skills} onChange={(e) => setSkills(e.target.value)} />
+                </div>
+                <div>
+                  <label className="label" htmlFor="languages">Languages (comma-separated)</label>
+                  <input id="languages" className="input" value={languages} onChange={(e) => setLanguages(e.target.value)} />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="label" htmlFor="examPreference">Primary Exam Preference</label>
                   <select
-                    id="preferredJobType"
+                    id="examPreference"
                     className="input"
-                    value={preferredJobType}
-                    onChange={(e) => setPreferredJobType(e.target.value)}
+                    value={examPreference}
+                    onChange={(e) => setExamPreference(e.target.value)}
                   >
                     <option value="">Select...</option>
                     <option value="SSC">SSC Exams</option>
