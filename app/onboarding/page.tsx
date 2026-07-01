@@ -144,18 +144,21 @@ export default function OnboardingPage() {
     setIsSaving(true);
     setError(null);
     
-    // Create a copy to avoid mutating state directly before saving
-    const { ...profileToSave } = profileData;
-
-    // The 'skills' and 'languages' are stored as arrays in the DB
     const payload = {
-      ...profileToSave,
       user_id: userId,
-      skills: profileToSave.skills.split(',').map(s => s.trim()).filter(Boolean),
-      languages: profileToSave.languages.split(',').map(s => s.trim()).filter(Boolean),
+      full_name: profileData.full_name || null,
+      phone: profileData.phone || null,
+      state: profileData.state || null,
+      qualification: profileData.qualification || null,
+      degree: profileData.degree || null,
+      branch: profileData.branch || null,
+      age: profileData.age,
+      gender: profileData.gender || null,
+      category: profileData.category || null,
+      skills: profileData.skills.split(',').map(s => s.trim()).filter(Boolean),
+      languages: profileData.languages.split(',').map(s => s.trim()).filter(Boolean),
+      exam_preference: profileData.exam_preference || null,
     };
-
-    console.log("Profile payload", payload);
 
     try {
       if (!userId) throw new Error("User not found.");
@@ -164,20 +167,6 @@ export default function OnboardingPage() {
       const { error: saveError } = await supabase.from('profiles').upsert(payload, { onConflict: 'user_id' });
 
       if (saveError) throw saveError;
-
-      // Call eligibility engine to warm up the cache for the dashboard
-      await fetch('/api/eligibility/check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          age: payload.age,
-          category: payload.category,
-          qualification: payload.qualification,
-          state: payload.state,
-          has_pwd: payload.has_pwd,
-          ex_serviceman: payload.ex_serviceman,
-        })
-      });
 
       router.push('/dashboard');
 

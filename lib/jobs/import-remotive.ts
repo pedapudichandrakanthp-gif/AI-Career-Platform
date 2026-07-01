@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { cleanJobWithAI, buildRawJobContent } from "@/lib/ai/job-cleaner";
-import { isDuplicateByExternalId, isDuplicateJob } from "@/lib/jobs/duplicate";
+import { isDuplicateJob } from "@/lib/jobs/duplicate";
 import type { RemotiveJob } from "@/types/ai";
 
 const REMOTIVE_API = "https://remotive.com/api/remote-jobs";
@@ -24,43 +24,17 @@ export async function fetchRemotiveJobs(): Promise<RemotiveJob[]> {
   return data.jobs ?? [];
 }
 
-function getExpiresAt(): string {
-  const date = new Date();
-  date.setDate(date.getDate() + 30);
-  return date.toISOString();
-}
-
 export async function importRemotiveJobs(supabase: SupabaseClient): Promise<ImportResult> {
   const jobs = await fetchRemotiveJobs();
   let inserted = 0;
   let duplicated = 0;
   let errors = 0;
 
-  // job_import_logs and jobs_raw tables do not exist in production
-  // const { data: log } = await supabase
-  //   .from("job_import_logs")
-  //   .insert([{ source: "Remotive API", status: "running", jobs_fetched: jobs.length }])
-  //   .select("id")
-  //   .single();
-
-  // const logId = log?.id;
-
   for (const rawJob of jobs) {
     try {
-      const externalId = `remotive-${rawJob.id}`;
-
-      if (await isDuplicateByExternalId(supabase, externalId)) {
-        duplicated++;
-        continue;
-      }
-
-      // await supabase.from("jobs_raw").insert([
-      //   {
-      //     external_id: externalId,
-      //     source: "Remotive API",
-      //     raw_data: rawJob as unknown as Record<string, unknown>,
-      //   },
-      // ]);
+      // Per PHASE_2_AUDIT_REPORT, `external_id` is deprecated.
+      // The isDuplicateByExternalId check is no longer valid.
+      // We will rely on the subsequent `isDuplicateJob` check.
 
       const cleaned = await cleanJobWithAI(buildRawJobContent(rawJob as unknown as Record<string, unknown>));
 
@@ -79,21 +53,16 @@ export async function importRemotiveJobs(supabase: SupabaseClient): Promise<Impo
       const { error } = await supabase.from("jobs").insert([
         {
           exam_name: cleaned.title,
-          // clean_title: cleaned.clean_title, // Column does not exist
           conducting_body: cleaned.company_name || rawJob.company_name,
-          state: cleaned.location || rawJob.candidate_required_location, // Changed from location to state
-          job_level: cleaned.job_type || rawJob.job_type, // Changed from job_type to job_level
-          // work_mode: cleaned.work_mode || "Remote", // Column does not exist
+          // Per PHASE_2_AUDIT_REPORT, `state` is deprecated in favor of `required_state`.
+          required_state: cleaned.location || rawJob.candidate_required_location,
           category: cleaned.category || rawJob.category,
-          // skills: cleaned.skills.length > 0 ? [...cleaned.skills] : null, // Column does not exist
+          skills_required: cleaned.skills.length > 0 ? [...cleaned.skills] : null,
           qualification_required: cleaned.qualification || null,
           experience_required: cleaned.experience_required,
           description: cleaned.description || rawJob.description,
           apply_link: rawJob.url,
           is_active: true,
-          // source: "Remote API", // Column does not exist
-          // external_id: externalId, // Column does not exist
-          // expires_at: getExpiresAt(), // Column does not exist
         },
       ]);
 
@@ -106,17 +75,6 @@ export async function importRemotiveJobs(supabase: SupabaseClient): Promise<Impo
       errors++;
     }
   }
-
-  // if (logId) {
-  //   await supabase
-  //     .from("job_import_logs")
-  //     .update({
-  //       status: errors > 0 ? "completed_with_errors" : "completed",
-  //       jobs_inserted: inserted,
-  //       jobs_duplicated: duplicated,
-  //     })
-  //     .eq("id", logId);
-  // }
 
   return { fetched: jobs.length, inserted, duplicated, errors };
 }

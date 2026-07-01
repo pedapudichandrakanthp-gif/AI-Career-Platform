@@ -41,6 +41,7 @@ export default function SettingsPage() {
     setJobAlerts([]);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const saveSettings = async (updates: Partial<UserSettingsRow>) => {
     const {
       data: { user },
@@ -112,6 +113,7 @@ export default function SettingsPage() {
     // loadSettings();
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const deleteAlert = async (id: string) => {
     // job_alerts table does not exist in production
     // await supabase.from("job_alerts").delete().eq("id", id);

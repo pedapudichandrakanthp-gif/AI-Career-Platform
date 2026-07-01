@@ -21,7 +21,7 @@ export default function SavedJobsPage() {
       .from("saved_jobs")
       .select("*, jobs(*)")
       .eq("user_id", user.id)
-      .order("saved_at", { ascending: false });
+      .order("created_at", { ascending: false });
 
     if (error) {
       console.error(error);

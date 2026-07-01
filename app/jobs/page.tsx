@@ -33,10 +33,6 @@ const formatVacancies = (vacancies?: number | null) => {
 };
 
 async function JobsList() {
-  // Silently call the update-status endpoint. We don't need the response,
-  // just to trigger the action. This won't block rendering.
-  fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/jobs/update-status`, { cache: 'no-store' });
-
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -99,7 +95,7 @@ async function JobsList() {
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-[var(--muted-foreground)] flex items-center gap-1.5"><MapPin size={14} /> Location</span>
-                <span className="font-semibold">{job.state || "Pan-India"}</span>
+                <span className="font-semibold">{job.required_state || "Pan-India"}</span>
               </div>
             </div>
           </div>
@@ -133,7 +129,7 @@ export default function JobsPage() {
     <main className="page-main bg-slate-50 dark:bg-slate-900/50">
       <section className="page-container max-w-4xl mx-auto py-12">
         <h1 className="text-4xl font-bold font-display text-center mb-2">Latest Government Exams</h1>
-        <p className="text-lg text-center text-[var(--muted-foreground)] mb-10">Find your dream government exam with AvsarGrid.</p>
+        <p className="text-lg text-center text-[var(--muted-foreground)] mb-10">Find current government exam notifications on AvsarGrid.</p>
         <Suspense fallback={<JobsLoadingSkeleton />}>
           <JobsList />
         </Suspense>

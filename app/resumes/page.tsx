@@ -8,19 +8,14 @@ import {
   Eye,
   FileText,
   RefreshCw,
-  Sparkles,
   Upload,
 } from "lucide-react";
 
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import ResumeAnalysisCard from "@/components/dashboard/ResumeAnalysisCard";
-import { getScoreColor } from "@/components/dashboard/DashboardStats";
 import { useResumeUpdated } from "@/hooks/useResumeUpdated";
-import { urlToBase64 } from "@/lib/resumes/fileUtils";
 import { getAccessToken, uploadAndProcessResume } from "@/lib/resumes/upload";
 import { supabase } from "@/lib/supabase";
-import type { ResumeAnalysis } from "@/types/ai";
-import type { ResumeAnalysisRow, ResumeRow } from "@/types/database";
+import type { ResumeRow } from "@/types/database";
 
 export default function ResumePage() {
   const router = useRouter();
@@ -28,16 +23,14 @@ export default function ResumePage() {
   const [file, setFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
   const [uploadHistory, setUploadHistory] = useState<ResumeRow[]>([]);
   const [latestResume, setLatestResume] = useState<ResumeRow | null>(null);
-  const [resumeAnalysis, setResumeAnalysis] = useState<ResumeAnalysisRow | null>(null);
-  const [analysisResult, setAnalysisResult] = useState<ResumeAnalysis | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [pageLoading, setPageLoading] = useState(true);
 
   const loadResumeData = useCallback(async () => {
+    setPageLoading(true);
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -47,25 +40,19 @@ export default function ResumePage() {
       return;
     }
 
-    const [resumesRes, analysisRes] = await Promise.all([
-      supabase
+    const { data, error } = await supabase
         .from("resumes")
         .select("*")
         .eq("user_id", user.id)
-        .order("uploaded_at", { ascending: false }),
-      supabase
-        .from("resume_analysis")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-    ]);
+        .order("uploaded_at", { ascending: false });
 
-    const resumes = (resumesRes.data ?? []) as ResumeRow[];
+    if(error) {
+        setError(error.message);
+    }
+
+    const resumes = (data ?? []) as ResumeRow[];
     setUploadHistory(resumes);
     setLatestResume(resumes[0] ?? null);
-    setResumeAnalysis(analysisRes.data as ResumeAnalysisRow | null);
     setPageLoading(false);
   }, []);
 
@@ -76,10 +63,6 @@ export default function ResumePage() {
   useResumeUpdated(() => {
     loadResumeData();
   });
-
-  const atsScore = resumeAnalysis?.ats_score ?? 0;
-  const resumeStrength = resumeAnalysis?.resume_strength ?? 0;
-  const healthScore = resumeAnalysis ? Math.round((atsScore + resumeStrength) / 2) : 0;
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -147,50 +130,6 @@ export default function ResumePage() {
     await processUpload(selected, true);
   };
 
-  const handleAnalyze = async () => {
-    if (!latestResume) return;
-
-    setAnalyzing(true);
-    setError("");
-
-    try {
-      const accessToken = await getAccessToken(supabase);
-      let body: Record<string, string>;
-
-      if (latestResume.extracted_text) {
-        body = { resumeText: latestResume.extracted_text, resumeId: latestResume.id };
-      } else if (latestResume.file_url) {
-        const { base64, mimeType } = await urlToBase64(latestResume.file_url);
-        body = { pdfBase64: base64, mimeType, resumeId: latestResume.id };
-      } else {
-        throw new Error("Resume file not available.");
-      }
-
-      const response = await fetch("/api/ai/analyze-resume", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        const data = (await response.json()) as { error?: string };
-        throw new Error(data.error ?? "Analysis failed.");
-      }
-
-      const data = (await response.json()) as { analysis: ResumeAnalysis };
-      setAnalysisResult(data.analysis);
-      setMessage("Eligibility analysis complete.");
-      await loadResumeData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Analysis failed.");
-    } finally {
-      setAnalyzing(false);
-    }
-  };
-
   const handleViewResume = () => {
     if (latestResume?.file_url) window.open(latestResume.file_url, "_blank");
   };
@@ -205,7 +144,7 @@ export default function ResumePage() {
             <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Resume Center</p>
             <h1 className="page-title mt-1">Your Resume</h1>
             <p className="mt-2 text-[var(--muted-foreground)]">
-              Upload, analyze, and optimize your resume with AvsarGrid AI.
+              Upload your resume here. It will be automatically processed to extract key information.
             </p>
           </div>
 
@@ -218,30 +157,12 @@ export default function ResumePage() {
             </div>
           ) : (
             <div className="mt-8 space-y-6">
-              {/* Scores row */}
-              {resumeAnalysis ? (
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="widget-card text-center">
-                    <p className="stat-label">Resume Health</p>
-                    <p className={`stat-value mt-2 ${getScoreColor(healthScore)}`}>{healthScore}%</p>
-                  </div>
-                  <div className="widget-card text-center">
-                    <p className="stat-label">ATS Score</p>
-                    <p className={`stat-value mt-2 ${getScoreColor(atsScore)}`}>{atsScore}%</p>
-                  </div>
-                  <div className="widget-card text-center">
-                    <p className="stat-label">Resume Strength</p>
-                    <p className={`stat-value mt-2 ${getScoreColor(resumeStrength)}`}>{resumeStrength}%</p>
-                  </div>
-                </div>
-              ) : null}
-
               <div className="grid gap-6 lg:grid-cols-2">
                 {/* Drag & Drop */}
                 <div className="section-card">
                   <h2 className="font-display text-lg font-semibold">Upload Resume</h2>
                   <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-                    PDF only. AI extraction runs automatically on upload.
+                    PDF only. Re-uploading will replace your existing resume.
                   </p>
 
                   <div
@@ -273,7 +194,7 @@ export default function ResumePage() {
                     disabled={loading || !file}
                     className="btn-primary mt-4 w-full"
                   >
-                    {loading ? "Processing with AI..." : "Upload & Process"}
+                    {loading ? "Processing..." : "Upload & Process"}
                   </button>
                 </div>
 
@@ -314,15 +235,6 @@ export default function ResumePage() {
                           <RefreshCw size={16} />
                           Update
                         </button>
-                        <button
-                          type="button"
-                          onClick={handleAnalyze}
-                          disabled={analyzing}
-                          className="btn-primary col-span-2 text-sm"
-                        >
-                          <Sparkles size={16} />
-                          {analyzing ? "Analyzing..." : "Analyze Resume"}
-                        </button>
                       </div>
                     </div>
                   ) : (
@@ -335,10 +247,6 @@ export default function ResumePage() {
                   )}
                 </div>
               </div>
-
-              {analysisResult ? (
-                <ResumeAnalysisCard analysis={analysisResult} onClose={() => setAnalysisResult(null)} />
-              ) : null}
 
               {/* Upload History */}
               {uploadHistory.length > 0 ? (
