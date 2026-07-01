@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { Briefcase, Calendar, MapPin } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "AvsarGrid — Government Exam Platform",
+  description: "Discover government exams you are eligible for. Track notifications, check eligibility, and never miss an exam deadline.",
+};
 
 const getStatusBadge = (status?: string | null) => {
   const s = status?.toLowerCase();
