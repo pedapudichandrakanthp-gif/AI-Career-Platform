@@ -140,6 +140,10 @@ export default function LoginPage() {
             Create account
           </Link>
         </p>
+
+        <p className="mt-4 text-center text-xs text-[var(--muted-foreground)]">
+          New to AvsarGrid? Track exams, check eligibility, and never miss a deadline.
+        </p>
       </div>
     </AuthShell>
   );

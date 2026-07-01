@@ -117,7 +117,7 @@ export default function RegisterPage() {
   return (
     <AuthShell
       title="Create your account"
-      subtitle="Start tracking government exams with AvsarGrid."
+      subtitle="Start your government exam preparation journey with AvsarGrid."
     >
       {error ? <div className="alert-error mb-4">{error}</div> : null}
 
@@ -248,6 +248,10 @@ export default function RegisterPage() {
           <Link href="/login" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
             Sign in
           </Link>
+        </p>
+
+        <p className="mt-4 text-center text-xs text-[var(--muted-foreground)]">
+          Already used by thousands of SSC, Banking, and Railway aspirants.
         </p>
       </div>
     </AuthShell>
