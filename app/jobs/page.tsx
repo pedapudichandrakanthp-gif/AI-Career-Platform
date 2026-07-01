@@ -7,15 +7,30 @@ import { Briefcase, Calendar, MapPin } from "lucide-react";
 const getStatusBadge = (status?: string | null) => {
   const s = status?.toLowerCase();
   switch (s) {
-    case "open": return <span className="badge-green">Open</span>;
-    case "closing_soon": return <span className="badge-yellow animate-pulse">Closing Soon</span>;
-    case "upcoming": return <span className="badge-blue">Upcoming</span>;
-    case "closed": return <span className="badge-red">Closed</span>;
-    default: return null;
+    case "open": 
+      return <span className="badge-green">🟢 Applications Open</span>;
+    case "closing_soon": 
+      return <span className="badge-yellow animate-pulse">🟡 Closing Soon</span>;
+    case "upcoming": 
+      return <span className="badge-blue">🔵 Upcoming</span>;
+    case "closed": 
+      return <span className="badge-red">🔴 Closed</span>;
+    case "result_out": 
+      return <span className="badge-purple">🟣 Result Out</span>;
+    default: 
+      return null;
   }
 };
 
-const formatDate = (dateString?: string | null) => dateString ? new Date(dateString).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' }) : "TBD";
+const formatDate = (dateString?: string | null) => {
+  if (!dateString) return "Date TBA";
+  return new Date(dateString).toLocaleDateString("en-IN", { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+const formatVacancies = (vacancies?: number | null) => {
+  if (!vacancies || vacancies === 0) return "Vacancies: Announced Soon";
+  return `${vacancies.toLocaleString('en-IN')}`;
+};
 
 async function JobsList() {
   // Silently call the update-status endpoint. We don't need the response,
@@ -72,7 +87,7 @@ async function JobsList() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-6 pt-6 border-t border-[var(--border)] text-sm">
               <div className="flex flex-col gap-1">
                 <span className="text-[var(--muted-foreground)] flex items-center gap-1.5"><Briefcase size={14} /> Vacancies</span>
-                <span className="font-semibold">{job.vacancies || "TBD"}</span>
+                <span className="font-semibold">{formatVacancies(job.vacancies)}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-[var(--muted-foreground)] flex items-center gap-1.5"><Calendar size={14} /> Apply End</span>
