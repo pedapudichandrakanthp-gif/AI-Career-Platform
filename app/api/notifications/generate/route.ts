@@ -29,7 +29,7 @@ export async function POST() {
       return NextResponse.json({ success: true, message: "No users found" });
     }
 
-    let notificationCount = 0;
+    const notificationCount = 0;
 
     // Process each user
     for (const user of users.users) {

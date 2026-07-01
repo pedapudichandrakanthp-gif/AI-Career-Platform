@@ -4,8 +4,11 @@ export interface UserProfileRow {
   readonly full_name: string | null;
   readonly phone: string | null;
   readonly location: string | null;
+  readonly state: string | null;
   readonly education: string | null;
+  readonly qualification: string | null;
   readonly degree: string | null;
+  readonly age: number | null;
   readonly skills: string[] | null;
   readonly experience_years: number | null;
   readonly preferred_job_type: string | null;
@@ -24,6 +27,7 @@ export interface JobRow {
   job_type: string | null
   category: string | null
   location: string | null
+  state: string | null
   salary_min: number | null
   salary_max: number | null
   qualification_required: string | null
@@ -35,6 +39,8 @@ export interface JobRow {
   is_active: boolean
   created_at: string
   updated_at: string
+  status: string | null
+  vacancies: number | null
   // Government platform fields
   age_min: number | null
   age_max: number | null

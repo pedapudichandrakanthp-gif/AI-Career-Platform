@@ -133,7 +133,7 @@ export class EligibilityEngine {
     }
 
     // Calculate relaxation based on category
-    const relaxationYears = this.getAgeRelaxation(user.category || 'UR', exam.category_relaxation);
+    const relaxationYears = this.getAgeRelaxation(user.category || 'UR', exam.category_relaxation || undefined);
     const effectiveMaxAge = (jobAgeMax || 99) + relaxationYears;
 
     // Check age range
@@ -143,14 +143,16 @@ export class EligibilityEngine {
     if (userAge === null) {
       passed = false;
       reason = 'Age not provided in profile.';
-    } else if (jobAgeMin && userAge < jobAgeMin) {
-      passed = false;
-      reason = `Age ${userAge} is below minimum age ${jobAgeMin}.`;
-    } else if (jobAgeMax && userAge > effectiveMaxAge) {
-      passed = false;
-      reason = `Age ${userAge} exceeds maximum age ${jobAgeMax} (with ${relaxationYears} years relaxation for ${user.category || 'UR'} category).`;
     } else {
-      reason = `Age ${userAge} is within range ${jobAgeMin}-${effectiveMaxAge} (with ${relaxationYears} years relaxation).`;
+      if (jobAgeMin !== null && userAge! < jobAgeMin!) {
+        passed = false;
+        reason = `Age ${userAge} is below minimum age ${jobAgeMin}.`;
+      } else if (jobAgeMax !== null && userAge! > effectiveMaxAge) {
+        passed = false;
+        reason = `Age ${userAge} exceeds maximum age ${jobAgeMax} (with ${relaxationYears} years relaxation for ${user.category || 'UR'} category).`;
+      } else {
+        reason = `Age ${userAge} is within range ${jobAgeMin}-${effectiveMaxAge} (with ${relaxationYears} years relaxation).`;
+      }
     }
 
     return {
@@ -252,7 +254,7 @@ export class EligibilityEngine {
     const jobVacancies = exam.vacancies_by_category || null;
 
     // If no category-specific vacancies, assume all categories eligible
-    if (!jobVacancies || Object.keys(jobVacancies).length === 0) {
+    if (!jobVacancies || Object.keys(jobVacancies as Record<string, number>).length === 0) {
       return {
         passed: true,
         user_category: userCategory,
@@ -264,7 +266,7 @@ export class EligibilityEngine {
     }
 
     // Check if user's category has vacancies
-    const hasVacancy = (jobVacancies[userCategory] || 0) > 0;
+    const hasVacancy = jobVacancies ? ((jobVacancies as Record<string, number>)[userCategory] || 0) > 0 : false;
     
     // Protected categories (SC, ST) are always eligible even if no specific vacancy
     const isProtectedCategory = userCategory === 'SC' || userCategory === 'ST';
@@ -364,7 +366,7 @@ export class EligibilityEngine {
       job_requires_disability: false,
       reason: 'Disability check skipped; schema missing required fields.',
     };
-    const userHasDisability = user.has_disability || false;
+    const userHasDisability = user.has_pwd || false;
     const jobRequiresDisability = exam.requires_disability || false;
 
     // If job doesn't require disability, everyone is eligible
@@ -404,7 +406,7 @@ export class EligibilityEngine {
       job_requires_ex_serviceman: false,
       reason: 'Ex-serviceman check skipped; schema missing required fields.',
     };
-    const userIsExServiceman = user.is_ex_serviceman || false;
+    const userIsExServiceman = user.ex_serviceman || false;
     const jobRequiresExServiceman = exam.requires_ex_serviceman || false;
 
     // If job doesn't require ex-serviceman, everyone is eligible

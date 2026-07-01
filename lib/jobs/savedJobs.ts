@@ -2,7 +2,7 @@ import type { JobRow, SavedJobWithJob } from "@/types/database";
 
 export type SavedJobQueryJob = Pick<
   JobRow,
-  "id" | "exam_name" | "conducting_body" | "state" | "category"
+  "id" | "exam_name" | "conducting_body" | "state" | "category" | "location"
 >;
 
 export interface SavedJobQueryRow {
@@ -14,7 +14,7 @@ export interface SavedJobQueryRow {
 export function normalizeSavedJob(row: SavedJobQueryRow): SavedJobWithJob {
   return {
     id: row.id,
-    created_at: row.created_at,
+    saved_at: row.created_at,
     jobs: Array.isArray(row.jobs) ? (row.jobs[0] ?? null) : row.jobs
   };
 }

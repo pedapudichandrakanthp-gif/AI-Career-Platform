@@ -8,7 +8,7 @@ import { Bookmark, CheckCircle, ExternalLink, MapPin, Sparkles, XCircle, AlertCi
 import JobLogo from "@/components/JobLogo";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { supabase } from "@/lib/supabase";
-import type { JobRow, ProfileRow } from "@/types/database";
+import type { JobRow, UserProfileRow } from "@/types/database";
 
 type EligibilityJob = Pick<
   JobRow,
@@ -52,7 +52,7 @@ export default function RecommendationsPage() {
       return;
     }
 
-    const userProfile = profileRes.data as ProfileRow | null;
+    const userProfile = profileRes.data as UserProfileRow | null;
     const allJobs = (jobsRes.data ?? []) as EligibilityJob[];
     setSavedIds(new Set((savedRes.data ?? []).map((s) => s.job_id)));
 

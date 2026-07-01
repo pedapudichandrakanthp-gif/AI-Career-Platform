@@ -60,8 +60,8 @@ export async function POST(request: NextRequest) {
             age: authUser.user.user_metadata?.age,
             category: authUser.user.user_metadata?.category,
             gender: authUser.user.user_metadata?.gender,
-            has_disability: authUser.user.user_metadata?.has_disability,
-            is_ex_serviceman: authUser.user.user_metadata?.is_ex_serviceman,
+            has_pwd: authUser.user.user_metadata?.has_disability,
+            ex_serviceman: authUser.user.user_metadata?.is_ex_serviceman,
             state: authUser.user.user_metadata?.state,
             qualification: authUser.user.user_metadata?.qualification,
           };

@@ -23,12 +23,21 @@ export interface UserProfile {
 export interface ExamEligibility {
   id?: string;
   job_id?: string;
+  age_min?: number | null;
+  age_max?: number | null;
+  category_relaxation?: Record<string, number> | null;
+  vacancies_by_category?: Record<string, number> | null;
   qualification_required?: string;
   experience_required?: number | null;
   pay_scale?: string | null;
   application_start_date?: string | null;
   application_deadline?: string | null;
   exam_date?: string | null;
+  state_specific?: boolean | null;
+  required_state?: string | null;
+  requires_disability?: boolean | null;
+  requires_ex_serviceman?: boolean | null;
+  gender_required?: string | null;
 }
 
 export interface EligibilityCheckResult {
