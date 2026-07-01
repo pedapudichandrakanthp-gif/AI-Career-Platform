@@ -56,7 +56,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-xl font-semibold">6. AI-Generated Content</h2>
               <p className="mt-2 text-[var(--muted-foreground)]">
-                Our AI-powered recommendations and analyses are provided for informational purposes only. We do not guarantee the accuracy or completeness of AI-generated content. You should verify all information independently before making career decisions.
+                Our AI-powered recommendations and analyses are provided for informational purposes only. We do not guarantee the accuracy or completeness of AI-generated content. You should verify all information independently before making exam preparation decisions.
               </p>
             </section>
 
@@ -91,7 +91,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-xl font-semibold">11. Contact Information</h2>
               <p className="mt-2 text-[var(--muted-foreground)]">
-                For questions about these Terms of Service, please contact us at legal@avsargrid.com.
+                For questions about these Terms of Service, please contact us at support@avsargrid.com.
               </p>
             </section>
           </div>

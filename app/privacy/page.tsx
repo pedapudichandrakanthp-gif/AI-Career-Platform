@@ -21,7 +21,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-xl font-semibold">1. Information We Collect</h2>
               <p className="mt-2 text-[var(--muted-foreground)]">
-                AvsarGrid collects information you provide directly, including your name, email address, and resume content when you use our services. We also collect technical data such as IP address, browser type, and device information for security and analytics purposes.
+                AvsarGrid collects information you provide directly, including your name, email address, and profile and eligibility data when you use our services. We also collect technical data such as IP address, browser type, and device information for security and analytics purposes.
               </p>
             </section>
 
@@ -63,7 +63,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-xl font-semibold">7. Contact Us</h2>
               <p className="mt-2 text-[var(--muted-foreground)]">
-                If you have questions about this Privacy Policy or our data practices, please contact us at privacy@avsargrid.com.
+                If you have questions about this Privacy Policy or our data practices, please contact us at support@avsargrid.com.
               </p>
             </section>
           </div>
