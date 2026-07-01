@@ -89,10 +89,9 @@ export default function HomePage() {
             <p className="text-slate-600 dark:text-slate-400 mb-4">
               Get AI-generated study plans tailored to your exam type, available time, and preparation level.
             </p>
-            <Link href="/jobs" className="text-green-600 dark:text-green-400 font-medium flex items-center gap-2 hover:underline">
-              Generate Plan
-              <ArrowRight size={16} />
-            </Link>
+            <span className="text-green-600 dark:text-green-400 font-medium flex items-center gap-2">
+              Coming Soon
+            </span>
           </div>
 
           {/* Previous Papers */}
@@ -106,10 +105,9 @@ export default function HomePage() {
             <p className="text-slate-600 dark:text-slate-400 mb-4">
               Access previous year question papers with solutions to practice and understand exam patterns.
             </p>
-            <Link href="/jobs" className="text-orange-600 dark:text-orange-400 font-medium flex items-center gap-2 hover:underline">
-              View Papers
-              <ArrowRight size={16} />
-            </Link>
+            <span className="text-orange-600 dark:text-orange-400 font-medium flex items-center gap-2">
+              Coming Soon
+            </span>
           </div>
 
           {/* AI Exam Insights */}
@@ -123,7 +121,7 @@ export default function HomePage() {
             <p className="text-slate-600 dark:text-slate-400 mb-4">
               Get AI-powered analysis of exam patterns, important topics, and recommended resources.
             </p>
-            <Link href="/jobs" className="text-pink-600 dark:text-pink-400 font-medium flex items-center gap-2 hover:underline">
+            <Link href="/recommendations" className="text-pink-600 dark:text-pink-400 font-medium flex items-center gap-2 hover:underline">
               Get Insights
               <ArrowRight size={16} />
             </Link>
@@ -168,45 +166,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-slate-100 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-12">
-        <div className="page-container max-w-6xl mx-auto px-4">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <h4 className="font-bold text-slate-900 dark:text-white mb-4">AvsarGrid</h4>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                AI-powered government exam preparation platform helping aspirants achieve their dreams.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-bold text-slate-900 dark:text-white mb-4">Quick Links</h4>
-              <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
-                <li><Link href="/jobs" className="hover:text-blue-600 dark:hover:text-blue-400">Government Exams</Link></li>
-                <li><Link href="/recommendations" className="hover:text-blue-600 dark:hover:text-blue-400">Eligibility Check</Link></li>
-                <li><Link href="/saved-jobs" className="hover:text-blue-600 dark:hover:text-blue-400">Saved Exams</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold text-slate-900 dark:text-white mb-4">Resources</h4>
-              <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
-                <li><Link href="/privacy" className="hover:text-blue-600 dark:hover:text-blue-400">Privacy Policy</Link></li>
-                <li><Link href="/terms" className="hover:text-blue-600 dark:hover:text-blue-400">Terms of Service</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold text-slate-900 dark:text-white mb-4">Account</h4>
-              <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
-                <li><Link href="/login" className="hover:text-blue-600 dark:hover:text-blue-400">Sign In</Link></li>
-                <li><Link href="/register" className="hover:text-blue-600 dark:hover:text-blue-400">Create Account</Link></li>
-              </ul>
-            </div>
-          </div>
-          <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800 text-center text-sm text-slate-600 dark:text-slate-400">
-            © 2026 AvsarGrid. All rights reserved.
-          </div>
-        </div>
-      </footer>
     </main>
   );
 }
