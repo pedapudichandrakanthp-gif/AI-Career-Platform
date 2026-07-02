@@ -40,6 +40,7 @@ type ProfileData = {
   qualification: "10th" | "12th" | "Diploma" | "Graduate" | "Post Graduate" | "PhD" | "";
   degree: string;
   branch: string;
+  grade_percentage: number | null;
   phone: string;
   skills: string;
   languages: string;
@@ -58,6 +59,7 @@ const initialProfileData: ProfileData = {
   qualification: "",
   degree: "",
   branch: "",
+  grade_percentage: null,
   phone: "",
   skills: "",
   languages: "",
@@ -82,6 +84,7 @@ export default function OnboardingPage() {
   const [profileData, setProfileData] = useState<ProfileData>(initialProfileData);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -152,6 +155,7 @@ export default function OnboardingPage() {
       qualification: profileData.qualification || null,
       degree: profileData.degree || null,
       branch: profileData.branch || null,
+      grade_percentage: profileData.grade_percentage,
       age: profileData.age,
       gender: profileData.gender || null,
       category: profileData.category || null,
@@ -168,7 +172,10 @@ export default function OnboardingPage() {
 
       if (saveError) throw saveError;
 
-      router.push('/dashboard');
+      setSuccess("Profile saved! Finding eligible exams...");
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 2000);
 
     } catch (e: unknown) {
       const err = e as Error;
@@ -205,6 +212,7 @@ export default function OnboardingPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6"><div className="space-y-1 md:col-span-2"><label className="text-sm font-medium">Qualification</label><select className="input" value={profileData.qualification} onChange={e => handleInputChange('qualification', e.target.value)}><option value="" disabled>Select Qualification</option><option value="10th">10th Pass</option><option value="12th">12th Pass</option><option value="Diploma">Diploma</option><option value="Graduate">Graduate</option><option value="Post Graduate">Post Graduate</option><option value="PhD">PhD</option></select></div>
               <div className="space-y-1"><label className="text-sm font-medium">Degree Name</label><input type="text" placeholder="e.g., B.Tech, B.Com" className="input" value={profileData.degree} onChange={e => handleInputChange('degree', e.target.value)} /></div>
               <div className="space-y-1"><label className="text-sm font-medium">Specialization / Branch</label><input type="text" placeholder="e.g., Computer Science" className="input" value={profileData.branch} onChange={e => handleInputChange('branch', e.target.value)} /></div>
+              <div className="space-y-1"><label className="text-sm font-medium">Grade Percentage</label><input type="number" min="0" max="100" step="0.1" placeholder="e.g., 75.5" className="input" value={profileData.grade_percentage ?? ''} onChange={e => handleInputChange('grade_percentage', e.target.value ? parseFloat(e.target.value) : null)} /></div>
               <div className="space-y-1 md:col-span-2"><label className="text-sm font-medium">Skills (comma-separated)</label><textarea placeholder="e.g. Python, Data Analysis, Public Speaking" className="input" value={profileData.skills} onChange={e => handleInputChange('skills', e.target.value)} /></div>
               <div className="space-y-1"><label className="text-sm font-medium">Languages (comma-separated)</label><input type="text" placeholder="e.g. English, Hindi, Tamil" className="input" value={profileData.languages} onChange={e => handleInputChange('languages', e.target.value)} /></div>
               <div className="space-y-1"><label className="text-sm font-medium">Primary Exam Preference</label><select className="input" value={profileData.exam_preference} onChange={e => handleInputChange('exam_preference', e.target.value)}><option value="" disabled>Select Preference</option><option value="SSC">SSC Exams</option><option value="Banking">Banking Exams</option><option value="Railway">Railway Exams</option><option value="UPSC">UPSC Exams</option><option value="State PSC">State PSC Exams</option></select></div>
@@ -241,6 +249,7 @@ export default function OnboardingPage() {
           </div>
 
           {error && <div className="alert-error mb-6">{error}</div>}
+          {success && <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-green-800 dark:text-green-300">{success}</div>}
           
           <div className="min-h-[300px]">
             {renderStep()}
