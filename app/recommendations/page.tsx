@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
-import { Bookmark, CheckCircle, ExternalLink, MapPin, Sparkles, XCircle, AlertCircle } from "lucide-react";
+import { Bookmark, ExternalLink, MapPin, Sparkles } from "lucide-react";
 
 import JobLogo from "@/components/JobLogo";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -30,52 +30,69 @@ export default function RecommendationsPage() {
     setErrorMessage("");
     setLoading(true);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) return;
-
-    const [profileRes, jobsRes, savedRes] = await Promise.all([
-      supabase.from('profiles').select('*').eq('user_id', user.id).single(),
-      supabase
-        .from("jobs")
-        .select("*")
-        .eq("is_active", true)
-        .order("application_deadline", { ascending: true }),
-      supabase.from("saved_jobs").select("job_id").eq("user_id", user.id)
-    ]);
-
-    if (jobsRes.error) {
-      setErrorMessage(jobsRes.error.message);
+    // 5-second timeout
+    const timeoutId = setTimeout(() => {
       setLoading(false);
-      return;
-    }
+      setErrorMessage("Request timed out. Please try again.");
+    }, 5000);
 
-    const userProfile = profileRes.data as UserProfileRow | null;
-    const allJobs = (jobsRes.data ?? []) as EligibilityJob[];
-    setSavedIds(new Set((savedRes.data ?? []).map((s) => s.job_id)));
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    if (!userProfile) {
-      setErrorMessage("Please complete your profile to see recommendations.");
+      if (!user) {
+        clearTimeout(timeoutId);
+        return;
+      }
+
+      const [profileRes, jobsRes, savedRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('user_id', user.id).single(),
+        supabase
+          .from("jobs")
+          .select("*")
+          .eq("is_active", true)
+          .order("application_deadline", { ascending: true }),
+        supabase.from("saved_jobs").select("job_id").eq("user_id", user.id)
+      ]);
+
+      clearTimeout(timeoutId);
+
+      if (jobsRes.error) {
+        setErrorMessage(jobsRes.error.message);
+        setLoading(false);
+        return;
+      }
+
+      const userProfile = profileRes.data as UserProfileRow | null;
+      const allJobs = (jobsRes.data ?? []) as EligibilityJob[];
+      setSavedIds(new Set((savedRes.data ?? []).map((s) => s.job_id)));
+
+      if (!userProfile) {
+        setErrorMessage("Set up your profile first to get personalized exam recommendations");
+        setLoading(false);
+        setRecommendations([]);
+        return;
+      }
+
+      const eligibleJobs = allJobs.filter(job => {
+        if (!userProfile.age || !job.age_min || !job.age_max) return false;
+        const ageMatch = userProfile.age >= job.age_min && userProfile.age <= job.age_max;
+
+        const qualMatch = userProfile.qualification === job.qualification_required;
+        
+        const stateMatch = !job.state_specific || userProfile.state === job.required_state || job.location === 'All India';
+
+        return ageMatch && qualMatch && stateMatch;
+      });
+
+      setRecommendations(eligibleJobs.map(job => ({ job })));
       setLoading(false);
-      setRecommendations([]);
-      return;
+    } catch {
+      clearTimeout(timeoutId);
+      setErrorMessage("Failed to load recommendations. Please try again.");
+      setLoading(false);
     }
-
-    const eligibleJobs = allJobs.filter(job => {
-      if (!userProfile.age || !job.age_min || !job.age_max) return false;
-      const ageMatch = userProfile.age >= job.age_min && userProfile.age <= job.age_max;
-
-      const qualMatch = userProfile.qualification === job.qualification_required;
-      
-      const stateMatch = !job.state_specific || userProfile.state === job.required_state || job.location === 'All India';
-
-      return ageMatch && qualMatch && stateMatch;
-    });
-
-    setRecommendations(eligibleJobs.map(job => ({ job })));
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -107,7 +124,14 @@ export default function RecommendationsPage() {
             </p>
           </div>
 
-          {errorMessage ? <div className="alert-error mt-6">{errorMessage}</div> : null}
+          {errorMessage ? (
+            <div className="alert-error mt-6 flex items-center justify-between">
+              <span>{errorMessage}</span>
+              <button onClick={fetchRecommendations} className="text-sm font-semibold underline ml-4">
+                Retry
+              </button>
+            </div>
+          ) : null}
 
           {loading ? (
             <div className="text-center py-16">
@@ -119,10 +143,10 @@ export default function RecommendationsPage() {
                 {errorMessage ? "Action Required" : "No Eligible Exams Found"}
               </h3>
               <p className="text-[var(--muted-foreground)] mt-2">
-                Complete your profile to check eligibility for government exams.
+                {errorMessage ? "Set up your profile first to get personalized exam recommendations" : "No matching exams found. Try updating your qualification or category in your profile."}
               </p>
               <Link href="/onboarding" className="btn-primary mt-4 inline-block">
-                Complete Profile
+                {errorMessage ? "Complete Profile" : "Update Profile"}
               </Link>
             </div>
           ) : (

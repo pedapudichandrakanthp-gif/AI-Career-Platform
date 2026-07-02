@@ -59,6 +59,23 @@ async function DashboardContent() {
 
   const profile = profileRes.data;
 
+  // Redirect to onboarding if no profile exists
+  if (!profile) {
+    return (
+      <div className="space-y-10">
+        <div className="rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-indigo-800 p-8 sm:p-10 text-white shadow-xl">
+          <h1 className="text-3xl sm:text-4xl font-bold font-display">Welcome to AvsarGrid!</h1>
+          <p className="mt-4 text-lg text-blue-100">Complete your profile to see eligible exams</p>
+          <div className="mt-8">
+            <Link href="/onboarding" className="inline-flex items-center justify-center rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-blue-700 hover:bg-blue-50 transition-all shadow-sm">
+              Complete Profile
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   interface DashboardExam {
     id: string;
     exam_name?: string;
@@ -206,43 +223,52 @@ async function DashboardContent() {
       {/* SECTION 3: My Applications (Kanban) */}
       <section className="space-y-4">
         <h2 className="text-xl sm:text-2xl font-bold text-[var(--foreground)]">My Exam Tracker</h2>
-        <div className="flex gap-4 overflow-x-auto pb-6 snap-x hide-scrollbar">
-          {COLUMNS.map(col => {
-            const colApps = trackedExams.filter(a => (a.status || 'Saved').toLowerCase() === col.toLowerCase());
-            return (
-              <div key={col} className="min-w-[300px] flex-shrink-0 bg-slate-100 dark:bg-slate-800/50 rounded-2xl p-4 snap-start border border-[var(--border)]">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-sm text-[var(--muted-foreground)] uppercase tracking-wider">{col}</h3>
-                  <span className="bg-slate-200 dark:bg-slate-700 text-xs font-semibold px-2 py-0.5 rounded-full">{colApps.length}</span>
+        {trackedExams.length === 0 ? (
+          <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
+            <p className="text-sm font-medium text-[var(--muted-foreground)]">No exams tracked yet. Browse exams to get started.</p>
+            <Link href="/jobs" className="mt-4 inline-block btn-primary text-sm">
+              Browse Exams
+            </Link>
+          </div>
+        ) : (
+          <div className="flex gap-4 overflow-x-auto pb-6 snap-x hide-scrollbar">
+            {COLUMNS.map(col => {
+              const colApps = trackedExams.filter(a => (a.status || 'Saved').toLowerCase() === col.toLowerCase());
+              return (
+                <div key={col} className="min-w-[300px] flex-shrink-0 bg-slate-100 dark:bg-slate-800/50 rounded-2xl p-4 snap-start border border-[var(--border)]">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-sm text-[var(--muted-foreground)] uppercase tracking-wider">{col}</h3>
+                    <span className="bg-slate-200 dark:bg-slate-700 text-xs font-semibold px-2 py-0.5 rounded-full">{colApps.length}</span>
+                  </div>
+                  <div className="space-y-3">
+                    {colApps.map(app => (
+                      <div key={app.id} className="bg-white dark:bg-[var(--surface)] p-4 rounded-xl shadow-sm border border-[var(--border)] relative group">
+                        <h4 className="font-semibold text-sm leading-tight text-[var(--foreground)] line-clamp-2">
+                          {app.jobs?.exam_name || `Exam ID: ${app.job_id.substring(0, 8)}...`}
+                        </h4>
+                        
+                        <form action={updateStatus} className="mt-4 flex items-center gap-2">
+                          <input type="hidden" name="appId" value={app.id} />
+                          <select name="status" defaultValue={app.status || "Saved"} className="input text-xs py-1.5 px-2 h-auto flex-1 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 cursor-pointer focus:ring-1 focus:ring-blue-500">
+                            {COLUMNS.map(c => <option key={c} value={c.toLowerCase()}>{c}</option>)}
+                          </select>
+                          <button type="submit" className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors">
+                            Update
+                          </button>
+                        </form>
+                      </div>
+                    ))}
+                    {colApps.length === 0 && (
+                      <div className="text-center py-6 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
+                        <p className="text-xs font-medium text-[var(--muted-foreground)]">No exams tracked here</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="space-y-3">
-                  {colApps.map(app => (
-                    <div key={app.id} className="bg-white dark:bg-[var(--surface)] p-4 rounded-xl shadow-sm border border-[var(--border)] relative group">
-                      <h4 className="font-semibold text-sm leading-tight text-[var(--foreground)] line-clamp-2">
-                        {app.jobs?.exam_name || `Exam ID: ${app.job_id.substring(0, 8)}...`}
-                      </h4>
-                      
-                      <form action={updateStatus} className="mt-4 flex items-center gap-2">
-                        <input type="hidden" name="appId" value={app.id} />
-                        <select name="status" defaultValue={app.status || "Saved"} className="input text-xs py-1.5 px-2 h-auto flex-1 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 cursor-pointer focus:ring-1 focus:ring-blue-500">
-                          {COLUMNS.map(c => <option key={c} value={c.toLowerCase()}>{c}</option>)}
-                        </select>
-                        <button type="submit" className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors">
-                          Update
-                        </button>
-                      </form>
-                    </div>
-                  ))}
-                  {colApps.length === 0 && (
-                    <div className="text-center py-6 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
-                      <p className="text-xs font-medium text-[var(--muted-foreground)]">No exams tracked here</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -252,10 +278,7 @@ async function DashboardContent() {
             Today&apos;s Study Tasks
           </h2>
           <div className="text-center py-8 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
-            <p className="text-sm font-medium text-[var(--muted-foreground)]">No active study tasks</p>
-            <Link href="/exams" className="mt-4 inline-block btn-primary text-sm">
-              Start Exam Preparation
-            </Link>
+            <p className="text-sm font-medium text-[var(--muted-foreground)]">No study plans yet. Click Study Plan on any exam to create one.</p>
           </div>
         </section>
 
