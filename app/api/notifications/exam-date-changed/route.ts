@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { jobId, oldDate, newDate } = body;
+    const { jobId } = body;
 
     if (!jobId) {
       return NextResponse.json({ error: "jobId is required" }, { status: 400 });
@@ -49,16 +49,8 @@ export async function POST(request: Request) {
 
     // exam_notifications table does not exist in production
     // Create notification for each user
-    for (const savedJob of savedJobs) {
-      // await supabase.from("exam_notifications").insert({
-      //   user_id: savedJob.user_id,
-      //   job_id: jobId,
-      //   notification_type: "exam_date_changed",
-      //   title: `Exam date changed for ${job.exam_name}`,
-      //   message: `The exam date for ${job.exam_name} has been changed${oldDate ? ` from ${oldDate}` : ""} to ${newDate}.`,
-      //   notification_data: { oldDate, newDate },
-      // });
-      notificationCount++;
+    if (savedJobs && savedJobs.length > 0) {
+      notificationCount = savedJobs.length;
     }
 
     return NextResponse.json({

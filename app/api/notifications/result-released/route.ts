@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { jobId, resultDate } = body;
+    const { jobId } = body;
 
     if (!jobId) {
       return NextResponse.json({ error: "jobId is required" }, { status: 400 });
@@ -49,16 +49,8 @@ export async function POST(request: Request) {
 
     // exam_notifications table does not exist in production
     // Create notification for each user
-    for (const savedJob of savedJobs) {
-      // await supabase.from("exam_notifications").insert({
-      //   user_id: savedJob.user_id,
-      //   job_id: jobId,
-      //   notification_type: "result_announced",
-      //   title: `Result announced for ${job.exam_name}`,
-      //   message: `The result for ${job.exam_name} has been announced${resultDate ? ` on ${resultDate}` : ""}. Check the official website for details.`,
-      //   notification_data: { resultDate },
-      // });
-      notificationCount++;
+    if (savedJobs && savedJobs.length > 0) {
+      notificationCount = savedJobs.length;
     }
 
     return NextResponse.json({

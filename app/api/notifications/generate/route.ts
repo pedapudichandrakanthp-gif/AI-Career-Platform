@@ -17,12 +17,6 @@ export async function POST() {
       }
     );
 
-    const currentDate = new Date();
-    const threeDaysLater = new Date(currentDate);
-    threeDaysLater.setDate(currentDate.getDate() + 3);
-    const tomorrow = new Date(currentDate);
-    tomorrow.setDate(currentDate.getDate() + 1);
-
     // Get all users who have saved jobs or are eligible for jobs
     const { data: users } = await supabase.auth.admin.listUsers();
     if (!users) {
@@ -54,9 +48,6 @@ export async function POST() {
 
       for (const job of jobs) {
         if (!job.application_deadline) continue;
-
-        const deadline = new Date(job.application_deadline);
-        const daysUntilDeadline = Math.ceil((deadline.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
 
         // exam_notifications table does not exist in production
         // Check if notification already exists for this event
