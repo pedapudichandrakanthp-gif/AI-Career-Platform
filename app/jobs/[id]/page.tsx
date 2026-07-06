@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { ArrowLeft, Calendar, Download, ExternalLink } from "lucide-react";
+import SaveExamButton from "@/components/jobs/SaveExamButton";
 
 interface Job {
   id: string;
@@ -245,29 +246,18 @@ async function JobDetail({ id }: { readonly id: string }) {
         )}
 
         {/* Action Buttons */}
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex flex-wrap gap-3 mt-4">
           {jobData.apply_link && (
             <a
               href={jobData.apply_link}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-primary text-center"
+              className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium"
             >
-              <ExternalLink size={18} aria-hidden="true" />
-              Apply Now
+              Apply Now →
             </a>
           )}
-          {jobData.notification_pdf_url && (
-            <a
-              href={jobData.notification_pdf_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-secondary text-center"
-            >
-              <Download size={18} aria-hidden="true" />
-              Download Notification
-            </a>
-          )}
+          <SaveExamButton jobId={job.id} examName={job.exam_name} />
         </div>
       </section>
     </main>
