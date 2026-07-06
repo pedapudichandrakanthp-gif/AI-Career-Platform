@@ -29,7 +29,7 @@ Keep it under 250 words. Professional tone. No placeholders.`;
           content: prompt,
         },
       ],
-      model: "llama3-8b-8192",
+      model: process.env.GROQ_MODEL || "llama-3.1-8b-instant",
       max_tokens: 400,
     });
 

@@ -3,7 +3,7 @@ import Groq from "groq-sdk";
 import { logAiError } from "@/lib/ai/errors";
 import { extractTextFromPdfBase64 } from "@/lib/ai/pdf";
 
-const PRIMARY_MODEL = "llama-3.3-70b-versatile";
+const PRIMARY_MODEL = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
 const FALLBACK_MODEL = "llama-3.1-70b-versatile";
 
 const JSON_SYSTEM_PREFIX =

@@ -113,7 +113,7 @@ Create a comprehensive study plan. Return ONLY valid JSON, no markdown:
 }`
 
     const completion = await groq.chat.completions.create({
-      model: 'llama3-8b-8192',
+      model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 1500,
       temperature: 0.3
