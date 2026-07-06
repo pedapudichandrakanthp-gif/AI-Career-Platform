@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { ArrowLeft, Calendar, Download, Bookmark, ExternalLink } from "lucide-react";
+import { ArrowLeft, Calendar, Download, ExternalLink } from "lucide-react";
 
 interface Job {
   id: string;
@@ -268,10 +268,6 @@ async function JobDetail({ id }: { readonly id: string }) {
               Download Notification
             </a>
           )}
-          <button className="btn-success text-center">
-            <Bookmark size={18} aria-hidden="true" />
-            Save Exam
-          </button>
         </div>
       </section>
     </main>
