@@ -131,6 +131,7 @@ export default function ProfilePage() {
           skills: skills.split(',').map(s => s.trim()).filter(Boolean),
           languages: languages.split(',').map(s => s.trim()).filter(Boolean),
           exam_preference: examPreference || null,
+          profile_complete: true,
           updated_at: new Date().toISOString(),
         }, {
           onConflict: 'user_id'
@@ -141,7 +142,14 @@ export default function ProfilePage() {
         return;
       }
 
-      setMessage("Profile saved successfully.");
+      // Trigger eligibility check
+      await fetch('/api/eligibility/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id })
+      });
+
+      setMessage("Profile updated! Eligibility recalculated.");
     } catch (err) {
       console.error(err);
       setMessage("An unexpected error occurred.");

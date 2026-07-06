@@ -23,9 +23,9 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: existing } = await auth.supabase
-      .from("users")
+      .from("profiles")
       .select("*")
-      .eq("id", auth.user.id)
+      .eq("user_id", auth.user.id)
       .maybeSingle();
 
     const updatePayload = body.overwriteEmptyOnly
@@ -36,10 +36,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "No new profile fields to update." });
     }
 
+    updatePayload.profile_complete = true;
+
     const { error } = await auth.supabase
-      .from("users")
-      .update(updatePayload)
-      .eq("id", auth.user.id);
+      .from("profiles")
+      .upsert({ ...updatePayload, user_id: auth.user.id }, { onConflict: 'user_id' });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

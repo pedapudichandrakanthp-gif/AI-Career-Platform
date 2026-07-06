@@ -162,6 +162,7 @@ export default function OnboardingPage() {
       skills: profileData.skills.split(',').map(s => s.trim()).filter(Boolean),
       languages: profileData.languages.split(',').map(s => s.trim()).filter(Boolean),
       exam_preference: profileData.exam_preference || null,
+      profile_complete: true,
     };
 
     try {
@@ -172,9 +173,16 @@ export default function OnboardingPage() {
 
       if (saveError) throw saveError;
 
-      setSuccess("Profile saved! Finding eligible exams...");
+      // Trigger eligibility check
+      await fetch('/api/eligibility/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+      });
+
+      setSuccess("Profile saved! Loading your eligible exams...");
       setTimeout(() => {
-        router.push('/dashboard');
+        router.push('/recommendations');
       }, 2000);
 
     } catch (e: unknown) {
