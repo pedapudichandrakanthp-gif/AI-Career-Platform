@@ -72,7 +72,7 @@ export interface SavedJobRow {
   readonly id: string;
   readonly user_id: string;
   readonly job_id: string;
-  readonly saved_at: string | null;
+  readonly created_at: string | null;
 }
 
 export interface MatchScoreRow {
@@ -190,6 +190,6 @@ export interface CareerRoadmapRow {
   readonly created_at: string | null;
 }
 
-export interface SavedJobWithJob extends Pick<SavedJobRow, "id" | "saved_at"> {
+export interface SavedJobWithJob extends Pick<SavedJobRow, "id" | "created_at"> {
   readonly jobs: Pick<JobRow, "id" | "exam_name" | "conducting_body" | "location" | "category"> | null;
 }

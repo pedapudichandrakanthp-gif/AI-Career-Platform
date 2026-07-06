@@ -14,7 +14,7 @@ export interface SavedJobQueryRow {
 export function normalizeSavedJob(row: SavedJobQueryRow): SavedJobWithJob {
   return {
     id: row.id,
-    saved_at: row.created_at,
+    created_at: row.created_at,
     jobs: Array.isArray(row.jobs) ? (row.jobs[0] ?? null) : row.jobs
   };
 }

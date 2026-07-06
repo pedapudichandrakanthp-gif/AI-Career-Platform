@@ -17,13 +17,20 @@ export default function SaveExamButton({ jobId }: SaveExamButtonProps) {
   const checkIfSaved = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const { data } = await supabase
-      .from('saved_jobs')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('job_id', jobId)
-      .single()
-    setSaved(!!data)
+    try {
+      const { data, error } = await supabase
+        .from('saved_jobs')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('job_id', jobId)
+        .single()
+      if (error && error.code !== 'PGRST116') {
+        console.error('Check saved error:', error)
+      }
+      setSaved(!!data)
+    } catch (err) {
+      console.error('Check saved error:', err)
+    }
   }, [jobId, supabase])
 
   useEffect(() => {
