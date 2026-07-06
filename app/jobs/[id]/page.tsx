@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { ArrowLeft, Calendar, Download, ExternalLink } from "lucide-react";
 import SaveExamButton from "@/components/jobs/SaveExamButton";
+import StudyPlanButton from "@/components/jobs/StudyPlanButton";
 
 interface Job {
   id: string;
@@ -258,6 +259,11 @@ async function JobDetail({ id }: { readonly id: string }) {
             </a>
           )}
           <SaveExamButton jobId={job.id} examName={job.exam_name} />
+          <StudyPlanButton
+            jobId={job.id}
+            examName={job.exam_name}
+            examDate={job.exam_date}
+          />
         </div>
       </section>
     </main>
