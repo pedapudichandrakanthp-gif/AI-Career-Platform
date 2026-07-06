@@ -1,8 +1,18 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+const PROTECTED = [
+  '/dashboard',
+  '/recommendations',
+  '/saved-jobs',
+  '/onboarding',
+  '/resumes',
+  '/profile',
+  '/settings'
+]
+
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
+  let response = NextResponse.next({
     request,
   })
 
@@ -15,35 +25,49 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value)
+            response = NextResponse.next({
+              request,
+            })
+            response.cookies.set(name, value, options)
           })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
         },
       },
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // IMPORTANT: Use getSession instead of getUser for middleware
+  const { data: { session } } = await supabase.auth.getSession()
 
-  const PROTECTED = ['/dashboard', '/recommendations', '/saved-jobs', '/onboarding', '/resumes', '/profile', '/settings']
   const path = request.nextUrl.pathname
-  const isProtected = PROTECTED.some((p) => path.startsWith(p))
+  const isProtected = PROTECTED.some(p => path.startsWith(p))
 
-  if (!user && isProtected) {
-    const url = new URL('/login', request.url)
-    url.searchParams.set('from', path)
-    return NextResponse.redirect(url)
+  // Redirect to login if no session on protected route
+  if (!session && isProtected) {
+    const redirectUrl = new URL('/login', request.url)
+    redirectUrl.searchParams.set('from', path)
+    return NextResponse.redirect(redirectUrl)
   }
 
-  return supabaseResponse
+  // Redirect to dashboard if logged in user visits login/register
+  if (session && (path === '/login' || path === '/register')) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  return response
 }
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+    '/dashboard/:path*',
+    '/recommendations/:path*',
+    '/saved-jobs/:path*',
+    '/onboarding/:path*',
+    '/resumes/:path*',
+    '/profile/:path*',
+    '/settings/:path*',
+    '/login',
+    '/register'
+  ]
 }
