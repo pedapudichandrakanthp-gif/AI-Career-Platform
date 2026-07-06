@@ -51,13 +51,15 @@ async function DashboardContent() {
   }
 
   // Fetch all dashboard data concurrently
-  const [profileRes, applicationsRes, examsRes] = await Promise.all([
+  const [profileRes, applicationsRes, eligibilityRes, jobsRes] = await Promise.all([
     supabase.from('profiles').select('*').eq('user_id', user.id).single(),
     supabase.from('applications').select('*, jobs(*)').eq('user_id', user.id).order('created_at', { ascending: false }),
+    supabase.from('user_job_eligibility').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
     supabase.from('jobs').select('*').eq('is_active', true)
   ]);
 
   const profile = profileRes.data;
+  const eligibleExamsCount = eligibilityRes.count || 0;
 
   // Redirect to onboarding if no profile exists
   if (!profile) {
@@ -80,7 +82,7 @@ async function DashboardContent() {
     id: string;
     exam_name?: string;
     conducting_body?: string;
-    application_deadline?: string;
+    application_end_date?: string;
     state?: string;
   }
 
@@ -93,39 +95,33 @@ async function DashboardContent() {
       id: string;
       exam_name?: string;
       conducting_body?: string;
-      application_deadline?: string;
+      application_end_date?: string;
     } | null;
   }
 
   const trackedExams: DashboardApplication[] = applicationsRes.data || [];
-  const exams: DashboardExam[] = examsRes.data || [];
+  const exams: DashboardExam[] = jobsRes.data || [];
 
-  // Calculate Eligibility & Find Urgent Deadlines
-  let eligibleExamsCount = 0;
+  // Find Urgent Deadlines (next 7 days)
   const urgentExams: DashboardExam[] = [];
   const now = new Date();
+  const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   const getDaysRemaining = (dateString: string) => {
     return Math.ceil((new Date(dateString).getTime() - now.getTime()) / (1000 * 3600 * 24));
   };
 
   exams.forEach(exam => {
-    // NOTE: Eligibility check logic removed as it depends on fields (age_min, age_max)
-    // that do not exist in the provided 'jobs' table schema.
-    // This is a major remaining issue to be addressed.
-    const isEligible = true; // Defaulting to true for UI purposes.
-    if (isEligible) eligibleExamsCount++;
-
     // Urgent Deadline Check
-    if (exam.application_deadline) {
-      const days = getDaysRemaining(exam.application_deadline || "");
-      if (days >= 0 && days <= 7) {
+    if (exam.application_end_date) {
+      const deadline = new Date(exam.application_end_date);
+      if (deadline >= now && deadline <= sevenDaysFromNow) {
         urgentExams.push(exam);
       }
     }
   });
-  
-  urgentExams.sort((a, b) => new Date(a.application_deadline || "").getTime() - new Date(b.application_deadline || "").getTime());
+
+  urgentExams.sort((a, b) => new Date(a.application_end_date || "").getTime() - new Date(b.application_end_date || "").getTime());
 
   // Profile Completion Logic
   const requiredFields = ['full_name', 'date_of_birth', 'gender', 'category', 'state', 'qualification'];
@@ -176,15 +172,27 @@ async function DashboardContent() {
           <h1 className="text-3xl sm:text-4xl font-bold font-display">
             Welcome back, {profile?.full_name?.split(' ')[0] || 'Aspirant'}!
           </h1>
-          <p className="mt-4 text-4xl sm:text-5xl font-extrabold text-blue-100 tracking-tight">
-            You are eligible for <span className="text-white">{eligibleExamsCount}</span> government exams
-          </p>
+          {eligibleExamsCount > 0 ? (
+            <p className="mt-4 text-4xl sm:text-5xl font-extrabold text-blue-100 tracking-tight">
+              You are eligible for <span className="text-white">{eligibleExamsCount}</span> government exams
+            </p>
+          ) : (
+            <p className="mt-4 text-4xl sm:text-5xl font-extrabold text-blue-100 tracking-tight">
+              Complete your profile to see eligible exams →
+            </p>
+          )}
           <p className="mt-4 text-sm sm:text-base font-medium text-blue-200/90 flex flex-wrap items-center gap-2">
             Based on your profile: {profile?.qualification || 'Graduate'} | Age {profile?.age || '24'} | {profile?.category || 'UR'} | {profile?.state || 'India'}
           </p>
-          <div className="mt-8">
-            <Link href="/exams?eligible=true" className="inline-flex items-center justify-center rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-blue-700 hover:bg-blue-50 hover:scale-[1.02] transition-all shadow-sm">
-              View All Eligible Exams
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link href="/jobs" className="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-blue-700 hover:bg-blue-50 hover:scale-[1.02] transition-all shadow-sm">
+              Browse Exams →
+            </Link>
+            <Link href="/recommendations" className="inline-flex items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm px-6 py-3.5 text-sm font-bold text-white hover:bg-white/30 transition-all border border-white/30">
+              My Recommendations →
+            </Link>
+            <Link href="/profile" className="inline-flex items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm px-6 py-3.5 text-sm font-bold text-white hover:bg-white/30 transition-all border border-white/30">
+              Update Profile →
             </Link>
           </div>
         </div>
@@ -199,7 +207,7 @@ async function DashboardContent() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {urgentExams.map(exam => {
-              const daysLeft = getDaysRemaining(exam.application_deadline || "");
+              const daysLeft = getDaysRemaining(exam.application_end_date || "");
               const isRed = daysLeft <= 3;
               return (
                 <div key={exam.id} className={`card p-5 border-l-4 ${isRed ? 'border-l-red-500 bg-red-50/30 dark:bg-red-900/10' : 'border-l-orange-400'}`}>
@@ -209,7 +217,7 @@ async function DashboardContent() {
                     <span className={`text-sm font-semibold flex items-center gap-1.5 ${isRed ? 'text-red-600 dark:text-red-400' : 'text-orange-600 dark:text-orange-400'}`}>
                       <Clock size={14}/> {daysLeft === 0 ? 'Ends Today' : `${daysLeft} days left`}
                     </span>
-                    <Link href={`/exams/${exam.id}`} className="btn-secondary text-xs px-4 py-2 border-none bg-white dark:bg-slate-800 shadow-sm hover:shadow">
+                    <Link href={`/jobs/${exam.id}`} className="btn-secondary text-xs px-4 py-2 border-none bg-white dark:bg-slate-800 shadow-sm hover:shadow">
                       View Notification
                     </Link>
                   </div>
