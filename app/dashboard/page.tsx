@@ -192,7 +192,7 @@ async function DashboardContent() {
             Based on your profile: {profile?.qualification || 'Graduate'} | Age {profile?.age || '24'} | {profile?.category || 'UR'} | {profile?.state || 'India'}
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/jobs" className="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-blue-700 hover:bg-blue-50 hover:scale-[1.02] transition-all shadow-sm">
+            <Link href="/jobs" className="inline-flex items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm px-6 py-3.5 text-sm font-bold text-white hover:bg-white/30 transition-all border border-white/30">
               Browse Exams →
             </Link>
             <Link href="/recommendations" className="inline-flex items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm px-6 py-3.5 text-sm font-bold text-white hover:bg-white/30 transition-all border border-white/30">
