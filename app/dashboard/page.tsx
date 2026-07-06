@@ -123,8 +123,15 @@ async function DashboardContent() {
 
   urgentExams.sort((a, b) => new Date(a.application_end_date || "").getTime() - new Date(b.application_end_date || "").getTime());
 
-  // Profile Completion Logic
-  const requiredFields = ['full_name', 'date_of_birth', 'gender', 'category', 'state', 'qualification'];
+  // Profile Completion Logic - check actual data fields
+  const profileComplete = profile && (
+    profile.age !== null &&
+    profile.category !== null &&
+    profile.qualification !== null &&
+    profile.state !== null
+  );
+
+  const requiredFields = ['full_name', 'age', 'gender', 'category', 'state', 'qualification'];
   const missingFields = requiredFields.filter(f => {
     const value = profile?.[f as keyof typeof profile];
     return value === null || value === undefined || value === '';
@@ -172,7 +179,7 @@ async function DashboardContent() {
           <h1 className="text-3xl sm:text-4xl font-bold font-display">
             Welcome back, {profile?.full_name?.split(' ')[0] || 'Aspirant'}!
           </h1>
-          {eligibleExamsCount > 0 ? (
+          {profileComplete ? (
             <p className="mt-4 text-4xl sm:text-5xl font-extrabold text-blue-100 tracking-tight">
               You are eligible for <span className="text-white">{eligibleExamsCount}</span> government exams
             </p>
