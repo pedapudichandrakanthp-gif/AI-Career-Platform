@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { ArrowLeft, Calendar, Download, ExternalLink } from "lucide-react";
+import { ArrowLeft, Calendar } from "lucide-react";
 import SaveExamButton from "@/components/jobs/SaveExamButton";
 import StudyPlanButton from "@/components/jobs/StudyPlanButton";
 
@@ -258,11 +258,10 @@ async function JobDetail({ id }: { readonly id: string }) {
               Apply Now →
             </a>
           )}
-          <SaveExamButton jobId={job.id} examName={job.exam_name} />
+          <SaveExamButton jobId={job.id} />
           <StudyPlanButton
             jobId={job.id}
             examName={job.exam_name}
-            examDate={job.exam_date}
           />
         </div>
       </section>

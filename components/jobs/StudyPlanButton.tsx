@@ -4,12 +4,30 @@ import { useState } from 'react'
 interface StudyPlanButtonProps {
   jobId: string
   examName: string
-  examDate?: string | null
 }
 
-export default function StudyPlanButton({ jobId, examName, examDate }: StudyPlanButtonProps) {
+interface StudyPlan {
+  exam_overview: string
+  total_days: number
+  daily_hours: number
+  phases: Array<{
+    phase: number
+    name: string
+    duration_days: number
+    focus: string
+    subjects: string[]
+  }>
+  weekly_schedule: Record<string, string[] | string>
+  key_subjects: string[]
+  important_topics: string[]
+  preparation_tips: string[]
+  recommended_books: string[]
+  daily_checklist: string[]
+}
+
+export default function StudyPlanButton({ jobId, examName }: StudyPlanButtonProps) {
   const [loading, setLoading] = useState(false)
-  const [plan, setPlan] = useState<any>(null)
+  const [plan, setPlan] = useState<StudyPlan | null>(null)
   const [error, setError] = useState('')
   const [showPlan, setShowPlan] = useState(false)
 
@@ -74,7 +92,7 @@ export default function StudyPlanButton({ jobId, examName, examDate }: StudyPlan
           <div className="mb-6">
             <h4 className="text-sm font-semibold text-gray-300 mb-3">📋 Study Phases</h4>
             <div className="space-y-2">
-              {plan.phases.map((phase: any, i: number) => (
+              {plan.phases.map((phase, i: number) => (
                 <div key={i} className="bg-white/5 rounded-lg p-3">
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-white text-sm">
@@ -85,7 +103,7 @@ export default function StudyPlanButton({ jobId, examName, examDate }: StudyPlan
                   <p className="text-xs text-gray-400 mt-1">{phase.focus}</p>
                   {phase.subjects && (
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {phase.subjects.map((s: string, j: number) => (
+                      {phase.subjects.map((s, j: number) => (
                         <span key={j} className="text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded">
                           {s}
                         </span>
@@ -103,7 +121,7 @@ export default function StudyPlanButton({ jobId, examName, examDate }: StudyPlan
           <div className="mb-6">
             <h4 className="text-sm font-semibold text-gray-300 mb-3">📅 Weekly Schedule</h4>
             <div className="grid gap-2">
-              {Object.entries(plan.weekly_schedule).map(([day, tasks]: [string, any]) => (
+              {Object.entries(plan.weekly_schedule).map(([day, tasks]) => (
                 <div key={day} className="flex gap-3 text-sm">
                   <span className="text-orange-400 font-medium w-24 shrink-0">{day}</span>
                   <span className="text-gray-300">{Array.isArray(tasks) ? tasks.join(' · ') : tasks}</span>

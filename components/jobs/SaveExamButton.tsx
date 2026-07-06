@@ -1,13 +1,12 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
 
 interface SaveExamButtonProps {
   jobId: string
-  examName: string
 }
 
-export default function SaveExamButton({ jobId, examName }: SaveExamButtonProps) {
+export default function SaveExamButton({ jobId }: SaveExamButtonProps) {
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
   const supabase = createClient(
@@ -15,11 +14,7 @@ export default function SaveExamButton({ jobId, examName }: SaveExamButtonProps)
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  useEffect(() => {
-    checkIfSaved()
-  }, [])
-
-  async function checkIfSaved() {
+  const checkIfSaved = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     const { data } = await supabase
@@ -29,7 +24,11 @@ export default function SaveExamButton({ jobId, examName }: SaveExamButtonProps)
       .eq('job_id', jobId)
       .single()
     setSaved(!!data)
-  }
+  }, [jobId, supabase])
+
+  useEffect(() => {
+    checkIfSaved()
+  }, [checkIfSaved])
 
   async function toggleSave() {
     setLoading(true)
