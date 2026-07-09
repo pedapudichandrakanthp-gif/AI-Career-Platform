@@ -66,7 +66,7 @@ export default function VerifyEmailPage() {
             </div>
             <h1 className="text-2xl font-bold text-[var(--foreground)]">Verify your email</h1>
             <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-              We've sent a verification link to your email address. Please check your inbox and click the link to activate your account.
+              We&apos;ve sent a verification link to your email address. Please check your inbox and click the link to activate your account.
             </p>
           </div>
 
@@ -101,7 +101,7 @@ export default function VerifyEmailPage() {
           </div>
 
           <div className="mt-4 text-center text-xs text-[var(--muted-foreground)]">
-            <p>Didn't receive the email? Check your spam folder or request a new link above.</p>
+            <p>Didn&apos;t receive the email? Check your spam folder or request a new link above.</p>
           </div>
         </div>
       </div>

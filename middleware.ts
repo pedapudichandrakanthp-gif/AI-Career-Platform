@@ -11,12 +11,6 @@ const PROTECTED = [
   '/settings'
 ]
 
-const PUBLIC = [
-  '/login',
-  '/register',
-  '/verify-email'
-]
-
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request,
@@ -48,7 +42,6 @@ export async function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname
   const isProtected = PROTECTED.some(p => path.startsWith(p))
-  const isPublic = PUBLIC.some(p => path.startsWith(p))
 
   // Redirect to login if no session on protected route
   if (!session && isProtected) {
