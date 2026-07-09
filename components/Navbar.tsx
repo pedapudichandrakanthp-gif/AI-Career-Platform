@@ -9,6 +9,7 @@ import { Menu, Sparkles, X } from "lucide-react";
 
 import { supabase } from "@/lib/supabase";
 
+import ProfileMenu from "./ProfileMenu";
 import ThemeToggle from "./ThemeToggle";
 
 const guestNavItems = [
@@ -126,6 +127,7 @@ export default function Navbar() {
 
         <div className="hidden items-center gap-3 md:flex">
           <ThemeToggle />
+          {!isLoading && isAuthenticated && <ProfileMenu />}
         </div>
 
         <button
@@ -161,7 +163,12 @@ export default function Navbar() {
           </div>
 
           <div className="border-t border-[var(--border)] px-4 py-3">
-            <ThemeToggle />
+            <div className="mb-3 flex items-center justify-between">
+              <ThemeToggle />
+            </div>
+            {!isLoading && isAuthenticated && (
+              <ProfileMenu onNavigate={() => setMobileOpen(false)} />
+            )}
           </div>
         </div>
       ) : null}
