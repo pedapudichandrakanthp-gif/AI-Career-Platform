@@ -69,6 +69,12 @@ ALTER TABLE applications ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT
 -- PART 2: CREATE GOVERNMENT PLATFORM FOUNDATION TABLES
 -- ============================================================================
 
+-- NOTE: The user_profiles table below was intended for government profile data,
+-- but in production, a separate 'profiles' table was created instead (via the UI).
+-- This migration keeps user_profiles for reference, but the application code uses
+-- the 'profiles' table. See migration 20250709_capture_production_schema.sql for
+-- the actual tables used in production (profiles, resumes, study_tracker).
+
 -- Table 1: user_profiles - Extended profile data for government exams
 CREATE TABLE IF NOT EXISTS user_profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
