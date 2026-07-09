@@ -11,6 +11,12 @@ const PROTECTED = [
   '/settings'
 ]
 
+const PUBLIC = [
+  '/login',
+  '/register',
+  '/verify-email'
+]
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request,
@@ -42,12 +48,24 @@ export async function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname
   const isProtected = PROTECTED.some(p => path.startsWith(p))
+  const isPublic = PUBLIC.some(p => path.startsWith(p))
 
   // Redirect to login if no session on protected route
   if (!session && isProtected) {
     const redirectUrl = new URL('/login', request.url)
     redirectUrl.searchParams.set('from', path)
     return NextResponse.redirect(redirectUrl)
+  }
+
+  // Check email verification for protected routes
+  if (session && isProtected) {
+    const isGoogleUser = session.user.app_metadata?.provider === 'google'
+    const isEmailConfirmed = !!session.user.email_confirmed_at
+
+    // Google OAuth users are pre-verified, skip email check
+    if (!isGoogleUser && !isEmailConfirmed) {
+      return NextResponse.redirect(new URL('/verify-email', request.url))
+    }
   }
 
   // Redirect to dashboard if logged in user visits login/register
@@ -68,6 +86,7 @@ export const config = {
     '/profile/:path*',
     '/settings/:path*',
     '/login',
-    '/register'
+    '/register',
+    '/verify-email'
   ]
 }
