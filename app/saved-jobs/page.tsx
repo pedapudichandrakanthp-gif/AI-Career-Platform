@@ -6,6 +6,9 @@ import { createClient } from "@supabase/supabase-js";
 
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import type { JobRow, SavedJobRow } from "@/types/database";
+type SavedJobWithJobs = SavedJobRow & {
+  jobs: Pick<JobRow, "id" | "exam_name" | "conducting_body" | "application_deadline" | "vacancies" | "status"> | null;
+};
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,7 +16,7 @@ const supabase = createClient(
 );
 
 export default function SavedJobsPage() {
-  const [savedJobs, setSavedJobs] = useState<(SavedJobRow & { job: JobRow | null })[]>([]);
+  const [savedJobs, setSavedJobs] = useState<SavedJobWithJobs[]>([]);
 
   const fetchSavedJobs = useCallback(async () => {
     const {
@@ -24,7 +27,7 @@ export default function SavedJobsPage() {
 
     const { data, error } = await supabase
       .from("saved_jobs")
-      .select("*, job(*)")
+      .select("*, jobs!job_id(id, exam_name, conducting_body, application_deadline, vacancies, status)")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -75,28 +78,28 @@ export default function SavedJobsPage() {
                 <article key={item.id} className="card">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      {item.job?.id ? (
-                            <Link href={`/jobs/${item.job.id}`}>
+                      {item.jobs?.id ? (
+                            <Link href={`/jobs/${item.jobs.id}`}>
                           <h2 className="card-title text-blue-600 hover:text-blue-500 dark:text-blue-400">
-                                {item.job.exam_name ?? "Untitled Exam"}
+                                {item.jobs.exam_name ?? "Untitled Exam"}
                           </h2>
                         </Link>
                       ) : (
-                            <h2 className="card-title">{item.job?.exam_name ?? "Untitled Exam"}</h2>
+                            <h2 className="card-title">{item.jobs?.exam_name ?? "Untitled Exam"}</h2>
                       )}
 
                       <p className="mt-2 font-medium text-slate-600 dark:text-slate-400">
-                            {item.job?.conducting_body ?? "Not specified"}
+                            {item.jobs?.conducting_body ?? "Not specified"}
                       </p>
                       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500 dark:text-slate-500">
-                            {item.job?.application_deadline && (
-                              <span>Deadline: {new Date(item.job.application_deadline).toLocaleDateString()}</span>
+                            {item.jobs?.application_deadline && (
+                              <span>Deadline: {new Date(item.jobs.application_deadline).toLocaleDateString()}</span>
                         )}
-                            {item.job?.vacancies && (
-                              <span>Vacancies: {item.job.vacancies.toLocaleString()}</span>
+                            {item.jobs?.vacancies && (
+                              <span>Vacancies: {item.jobs.vacancies.toLocaleString()}</span>
                         )}
-                            {item.job?.status && (
-                              <span>Status: <span className="font-medium capitalize">{item.job.status}</span></span>
+                            {item.jobs?.status && (
+                              <span>Status: <span className="font-medium capitalize">{item.jobs.status}</span></span>
                         )}
                       </div>
                     </div>
