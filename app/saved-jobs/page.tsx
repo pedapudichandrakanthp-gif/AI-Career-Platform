@@ -2,13 +2,18 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
 
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { supabase } from "@/lib/supabase";
 import type { JobRow, SavedJobRow } from "@/types/database";
 
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
 export default function SavedJobsPage() {
-  const [savedJobs, setSavedJobs] = useState<(SavedJobRow & { jobs: JobRow | null })[]>([]);
+  const [savedJobs, setSavedJobs] = useState<(SavedJobRow & { job: JobRow | null })[]>([]);
 
   const fetchSavedJobs = useCallback(async () => {
     const {
@@ -19,7 +24,7 @@ export default function SavedJobsPage() {
 
     const { data, error } = await supabase
       .from("saved_jobs")
-      .select("*, jobs(*)")
+      .select("*, job(*)")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -70,28 +75,28 @@ export default function SavedJobsPage() {
                 <article key={item.id} className="card">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      {item.jobs?.id ? (
-                        <Link href={`/jobs/${item.jobs.id}`}>
+                      {item.job?.id ? (
+                            <Link href={`/jobs/${item.job.id}`}>
                           <h2 className="card-title text-blue-600 hover:text-blue-500 dark:text-blue-400">
-                            {item.jobs.exam_name ?? "Untitled Exam"}
+                                {item.job.exam_name ?? "Untitled Exam"}
                           </h2>
                         </Link>
                       ) : (
-                        <h2 className="card-title">{item.jobs?.exam_name ?? "Untitled Exam"}</h2>
+                            <h2 className="card-title">{item.job?.exam_name ?? "Untitled Exam"}</h2>
                       )}
 
                       <p className="mt-2 font-medium text-slate-600 dark:text-slate-400">
-                        {item.jobs?.conducting_body ?? "Not specified"}
+                            {item.job?.conducting_body ?? "Not specified"}
                       </p>
                       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500 dark:text-slate-500">
-                        {item.jobs?.application_deadline && (
-                          <span>Deadline: {new Date(item.jobs.application_deadline).toLocaleDateString()}</span>
+                            {item.job?.application_deadline && (
+                              <span>Deadline: {new Date(item.job.application_deadline).toLocaleDateString()}</span>
                         )}
-                        {item.jobs?.vacancies && (
-                          <span>Vacancies: {item.jobs.vacancies.toLocaleString()}</span>
+                            {item.job?.vacancies && (
+                              <span>Vacancies: {item.job.vacancies.toLocaleString()}</span>
                         )}
-                        {item.jobs?.status && (
-                          <span>Status: <span className="font-medium capitalize">{item.jobs.status}</span></span>
+                            {item.job?.status && (
+                              <span>Status: <span className="font-medium capitalize">{item.job.status}</span></span>
                         )}
                       </div>
                     </div>
