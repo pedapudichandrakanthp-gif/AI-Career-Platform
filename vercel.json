@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/jobs/update-status",
+      "path": "/api/jobs/expire",
       "schedule": "0 0 * * *"
     }
   ]

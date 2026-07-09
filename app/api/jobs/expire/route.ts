@@ -1,25 +1,18 @@
-import { NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { type NextRequest, NextResponse } from "next/server";
+import { createServiceClient } from "@/lib/supabase/server";
 
-export async function POST() {
+export async function GET(request: NextRequest) {
+  const authHeader = request.headers.get("authorization");
+  const cronSecret = process.env.CRON_SECRET;
+
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-        },
-      }
-    );
-
+    const supabase = createServiceClient();
     const currentDate = new Date().toISOString();
 
-    // Update all jobs where application_deadline < current date to is_active = false
     const { error, count } = await supabase
       .from("jobs")
       .update({ is_active: false })
