@@ -62,7 +62,7 @@ ${jobText.substring(0, 15000)}`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.GROQ_MODEL || "llama-3.1-8b-instant",
+        model: process.env.GROQ_MODEL || "openai/gpt-oss-20b",
         messages: [{ role: "user", content: prompt }],
         max_tokens: 1200,
         response_format: { type: "json_object" }

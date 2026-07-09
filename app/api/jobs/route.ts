@@ -29,7 +29,7 @@ Keep it under 250 words. Professional tone. No placeholders.`;
           content: prompt,
         },
       ],
-      model: process.env.GROQ_MODEL || "llama-3.1-8b-instant",
+      model: process.env.GROQ_MODEL || "openai/gpt-oss-20b",
       max_tokens: 400,
     });
 

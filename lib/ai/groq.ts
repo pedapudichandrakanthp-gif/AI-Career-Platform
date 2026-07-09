@@ -3,8 +3,8 @@ import Groq from "groq-sdk";
 import { logAiError } from "@/lib/ai/errors";
 import { extractTextFromPdfBase64 } from "@/lib/ai/pdf";
 
-const PRIMARY_MODEL = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
-const FALLBACK_MODEL = "llama-3.1-70b-versatile";
+const PRIMARY_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-20b";
+const FALLBACK_MODEL = "openai/gpt-oss-120b";
 
 const JSON_SYSTEM_PREFIX =
   "You must respond with a single valid JSON object only. No markdown fences, no explanation, no preamble.";

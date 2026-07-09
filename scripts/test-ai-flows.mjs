@@ -5,8 +5,8 @@
 
 import Groq from "groq-sdk";
 
-const MODEL_PRIMARY = "llama-3.3-70b-versatile";
-const MODEL_FALLBACK = "llama-3.1-70b-versatile";
+const MODEL_PRIMARY = "openai/gpt-oss-20b";
+const MODEL_FALLBACK = "openai/gpt-oss-120b";
 
 const SAMPLE_RESUME_TEXT = `
 John Doe
